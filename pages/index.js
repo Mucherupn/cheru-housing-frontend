@@ -1,4 +1,3 @@
-import "../styles/globals.css";
 import Footer from "../components/Footer";
 import HeroButtons from "../components/HeroButtons";
 import Navbar from "../components/Navbar";

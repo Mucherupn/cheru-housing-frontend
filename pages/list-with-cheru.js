@@ -1,4 +1,3 @@
-import "../styles/globals.css";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
@@ -23,14 +22,12 @@ const ListWithCheru = () => {
       <Navbar />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-12 sm:px-6 lg:px-8">
         <section className="space-y-4">
-          <h1 className="text-3xl font-semibold text-white sm:text-4xl">
-            List with Cheru
-          </h1>
+          <h1 className="section-heading">List with Cheru</h1>
           <p className="max-w-2xl text-base text-[#4B5563]">
             Partner with Nairobi&apos;s most discerning housing reference for a
             seamless listing experience.
           </p>
-          <button className="rounded-xl bg-[#012169] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#012169]/90">
+          <button className="button-primary">
             Schedule a consultation
           </button>
         </section>
