@@ -1,10 +1,11 @@
-import Link from "next/link";
+import Link from "next/link"; 
 import { useRouter } from "next/router";
 
 const menuItems = [
   { label: "Insights", href: "/insights" },
   { label: "Buy", href: "/buy" },
   { label: "Rent", href: "/rent" },
+  { label: "Cheru Estimate", href: "/cheru-estimate" }, // FIXED HERE
   { label: "List With Cheru", href: "/list-with-cheru" },
 ];
 
@@ -17,13 +18,14 @@ const Navbar = () => {
         <Link href="/" className="flex items-center gap-3 text-white">
           <img
             src="/logo.png"
-            alt="Cheru Housing"
+            alt="C."
             className="h-10 w-10 rounded-full bg-white/10 object-contain"
           />
           <span className="text-lg font-semibold tracking-wide">
-            Cheru Housing
+            Cheru.
           </span>
         </Link>
+
         <nav aria-label="Primary" className="hidden items-center gap-6 md:flex">
           {menuItems.map((item) => {
             const isActive = router.pathname === item.href;
@@ -42,6 +44,7 @@ const Navbar = () => {
             );
           })}
         </nav>
+
         <div className="md:hidden">
           <Link
             href="/insights"

@@ -2,26 +2,55 @@ import formatPrice from "../utils/formatPrice";
 
 const PropertyCard = ({ property }) => {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#111418] shadow-lg">
-      <div className="flex h-48 items-center justify-center bg-black/60 text-sm text-white/60">
-        Image placeholder
+    <div
+      className="
+        group overflow-hidden rounded-xl bg-white
+        shadow-md
+        transition-all duration-300
+        hover:-translate-y-1 hover:shadow-2xl
+      "
+    >
+      {/* Image */}
+      <div className="relative h-56 w-full overflow-hidden">
+        <img
+          src={property.image}
+          alt={property.title}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-6">
+
+      {/* Content */}
+      <div className="space-y-3 p-5">
+        {/* Price */}
         <p className="text-lg font-semibold text-[#012169]">
           {formatPrice(property.price)}
         </p>
-        <div>
-          <h3 className="text-lg font-semibold text-white">
-            {property.location}
-          </h3>
-          <p className="text-sm text-[#4B5563]">{property.type}</p>
+
+        {/* Location */}
+        <p className="text-sm text-[#6B7280]">
+          {property.location}
+        </p>
+
+        {/* Title */}
+        <h3 className="text-base font-semibold text-[#0B1220] leading-snug">
+          {property.title}
+        </h3>
+
+        {/* Icons */}
+        <div className="flex items-center gap-4 pt-3 text-sm text-[#4B5563]">
+          {property.bedrooms && (
+            <span className="flex items-center gap-1">🛏️ {property.bedrooms}</span>
+          )}
+          {property.bathrooms && (
+            <span className="flex items-center gap-1">🛁 {property.bathrooms}</span>
+          )}
+          {property.parking && <span title="Parking">🅿️</span>}
+          {property.gym && <span title="Gym">🏋️</span>}
+          {property.lift && <span title="Lift">🛗</span>}
+          {property.pool && <span title="Pool">🏊</span>}
         </div>
-        <p className="text-sm text-[#4B5563]">{property.description}</p>
-        <button className="mt-auto w-fit rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:border-white">
-          View details
-        </button>
       </div>
-    </article>
+    </div>
   );
 };
 
