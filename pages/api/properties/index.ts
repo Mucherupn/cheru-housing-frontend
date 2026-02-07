@@ -7,20 +7,21 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Type helper for property
-type Property = {
-  id?: number;
-  name: string;
+// Type helper for listing
+type Listing = {
+  id?: string;
+  title: string;
   type: string;
-  location: string;
-  neighborhood: string;
-  price: number;
-  isAvailable?: boolean;
-  landSize?: number | null;
-  houseSize?: number | null;
-  apartmentFloor?: number | null;
-  yearBuilt?: number | null;
-  amenities?: string[] | null;
+  location_id: string;
+  description?: string | null;
+  price?: number | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  house_size?: number | null;
+  land_size?: number | null;
+  year_built?: number | null;
+  floor?: number | null;
+  apartment_name?: string | null;
 };
 
 export default async function handler(
@@ -34,19 +35,26 @@ export default async function handler(
     // Example: /api/properties?type=HOUSE&location=Westlands&isAvailable=true
     // ========================
     if (req.method === "GET") {
-      const { type, location, isAvailable } = req.query;
+      const { type, location } = req.query;
 
-      let query = supabaseAdmin.from("properties").select("*");
+      let query = supabaseAdmin.from("listings").select(
+        "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at,locations(name,slug)"
+      );
 
       // Apply filters if provided
       if (type && typeof type === "string") {
         query = query.eq("type", type);
       }
       if (location && typeof location === "string") {
-        query = query.ilike("location", `%${location}%`);
-      }
-      if (isAvailable === "true" || isAvailable === "false") {
-        query = query.eq("isAvailable", isAvailable === "true");
+        const { data: locationData } = await supabaseAdmin
+          .from("locations")
+          .select("id,name,slug")
+          .or(`slug.ilike.%${location}%,name.ilike.%${location}%`)
+          .maybeSingle();
+
+        if (locationData?.id) {
+          query = query.eq("location_id", locationData.id);
+        }
       }
 
       const { data, error } = await query.order("created_at", { ascending: false });
@@ -63,34 +71,27 @@ export default async function handler(
     // Create a new property
     // ========================
     if (req.method === "POST") {
-      const body: Property = req.body;
+      const body: Listing = req.body;
 
       // Basic validation
-      if (!body.name || !body.type || !body.location) {
-        return res.status(400).json({ error: "Name, type, and location are required." });
+      if (!body.title || !body.type || !body.location_id) {
+        return res
+          .status(400)
+          .json({ error: "Title, type, and location are required." });
       }
 
-      // Set defaults if needed
-      const newProperty = {
-        ...body,
-        isAvailable: body.isAvailable ?? true,
-        landSize: body.landSize ?? null,
-        houseSize: body.houseSize ?? null,
-        apartmentFloor: body.apartmentFloor ?? null,
-        yearBuilt: body.yearBuilt ?? null,
-        amenities: body.amenities ?? null,
-      };
-
       const { data, error } = await supabaseAdmin
-        .from("properties")
-        .insert([newProperty])
-        .select();
+        .from("listings")
+        .insert([body])
+        .select(
+          "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at"
+        );
 
       if (error) {
         return res.status(500).json({ error: error.message });
       }
 
-      return res.status(201).json({ property: data?.[0] ?? null });
+      return res.status(201).json({ listing: data?.[0] ?? null });
     }
 
     // ========================

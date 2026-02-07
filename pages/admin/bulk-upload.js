@@ -56,13 +56,12 @@ const BulkUploadPage = () => {
             />
           </div>
           <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-            <p className="font-semibold text-slate-900">Image folders</p>
+            <p className="font-semibold text-slate-900">Optional columns</p>
             <p className="mt-2">
-              Upload images separately in Supabase Storage under listing-images.
+              Provide house size, land size, floor, and apartment name when available.
             </p>
             <p className="mt-4 text-xs text-slate-400">
-              Use the featuredImage and galleryImages columns to reference paths or
-              URLs.
+              Amenities should be comma-separated in a single column.
             </p>
           </div>
         </div>
@@ -70,7 +69,7 @@ const BulkUploadPage = () => {
 
       <SectionCard
         title="Validation Preview"
-        description="We will flag missing fields, invalid listing types, or image path mismatches."
+        description="We will flag missing fields or invalid listing types."
       >
         <div className="grid gap-4 md:grid-cols-3">
           {[

@@ -12,7 +12,7 @@ export default async function handler(
     try {
       const { data, error } = await supabase
         .from("amenities")
-        .select("*")
+        .select("id,name")
         .order("name", { ascending: true });
 
       if (error) {
@@ -44,7 +44,7 @@ export default async function handler(
       // Check for duplicate
       const { data: existing } = await supabase
         .from("amenities")
-        .select("*")
+        .select("id,name")
         .eq("name", cleanName)
         .maybeSingle();
 
@@ -58,7 +58,7 @@ export default async function handler(
       const { data, error } = await supabase
         .from("amenities")
         .insert([{ name: cleanName }])
-        .select()
+        .select("id,name")
         .single();
 
       if (error) {

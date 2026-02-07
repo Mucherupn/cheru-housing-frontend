@@ -9,7 +9,9 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabaseAdmin
       .from("estimator_configs")
-      .select("*, locations(name)")
+      .select(
+        "id,property_type,base_price_per_sqm,land_price_per_acre,depreciation_rate,location_id,created_at,updated_at,locations(name)"
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -21,8 +23,10 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     const locationId = req.body?.locationId;
-    const pricePerSqm = req.body?.pricePerSqm;
+    const propertyType = req.body?.propertyType?.trim() || null;
+    const basePricePerSqm = req.body?.basePricePerSqm;
     const landPricePerAcre = req.body?.landPricePerAcre;
+    const depreciationRate = req.body?.depreciationRate;
 
     if (!locationId) {
       return res.status(400).json({ error: "Location is required." });
@@ -33,12 +37,18 @@ export default async function handler(req, res) {
       .insert([
         {
           location_id: locationId,
-          price_per_sqm: pricePerSqm !== "" ? Number(pricePerSqm) : null,
+          property_type: propertyType,
+          base_price_per_sqm:
+            basePricePerSqm !== "" ? Number(basePricePerSqm) : null,
           land_price_per_acre:
             landPricePerAcre !== "" ? Number(landPricePerAcre) : null,
+          depreciation_rate:
+            depreciationRate !== "" ? Number(depreciationRate) : null,
         },
       ])
-      .select("*")
+      .select(
+        "id,property_type,base_price_per_sqm,land_price_per_acre,depreciation_rate,location_id,created_at,updated_at"
+      )
       .single();
 
     if (error) {

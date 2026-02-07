@@ -9,8 +9,10 @@ const EstimatorPage = () => {
   const [locations, setLocations] = useState([]);
   const [formState, setFormState] = useState({
     locationId: "",
-    pricePerSqm: "",
+    propertyType: "",
+    basePricePerSqm: "",
     landPricePerAcre: "",
+    depreciationRate: "",
   });
 
   const loadData = async () => {
@@ -32,14 +34,22 @@ const EstimatorPage = () => {
       method: "POST",
       body: JSON.stringify(formState),
     });
-    setFormState({ locationId: "", pricePerSqm: "", landPricePerAcre: "" });
+    setFormState({
+      locationId: "",
+      propertyType: "",
+      basePricePerSqm: "",
+      landPricePerAcre: "",
+      depreciationRate: "",
+    });
     await loadData();
   };
 
   const rows = configs.map((config) => [
     config.locations?.name || "-",
-    config.price_per_sqm || "-",
+    config.property_type || "-",
+    config.base_price_per_sqm || "-",
     config.land_price_per_acre || "-",
+    config.depreciation_rate || "-",
     <button
       key={config.id}
       type="button"
@@ -64,7 +74,7 @@ const EstimatorPage = () => {
         title="Estimator Inputs"
         description="Update default rates for build cost and land value."
       >
-        <form onSubmit={handleSubmit} className="mb-6 grid gap-4 md:grid-cols-4">
+        <form onSubmit={handleSubmit} className="mb-6 grid gap-4 md:grid-cols-6">
           <select
             className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
             value={formState.locationId}
@@ -84,14 +94,25 @@ const EstimatorPage = () => {
             ))}
           </select>
           <input
-            type="number"
             className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
-            placeholder="Price per sqm"
-            value={formState.pricePerSqm}
+            placeholder="Property type (optional)"
+            value={formState.propertyType}
             onChange={(event) =>
               setFormState((prev) => ({
                 ...prev,
-                pricePerSqm: event.target.value,
+                propertyType: event.target.value,
+              }))
+            }
+          />
+          <input
+            type="number"
+            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
+            placeholder="Base price per sqm"
+            value={formState.basePricePerSqm}
+            onChange={(event) =>
+              setFormState((prev) => ({
+                ...prev,
+                basePricePerSqm: event.target.value,
               }))
             }
           />
@@ -107,6 +128,18 @@ const EstimatorPage = () => {
               }))
             }
           />
+          <input
+            type="number"
+            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
+            placeholder="Depreciation rate"
+            value={formState.depreciationRate}
+            onChange={(event) =>
+              setFormState((prev) => ({
+                ...prev,
+                depreciationRate: event.target.value,
+              }))
+            }
+          />
           <button
             type="submit"
             className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white"
@@ -116,7 +149,14 @@ const EstimatorPage = () => {
         </form>
 
         <DataTable
-          columns={["Location", "Price / sqm", "Land / acre", "Actions"]}
+          columns={[
+            "Location",
+            "Property Type",
+            "Base / sqm",
+            "Land / acre",
+            "Depreciation",
+            "Actions",
+          ]}
           rows={rows}
         />
       </SectionCard>

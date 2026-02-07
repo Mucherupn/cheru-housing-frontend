@@ -25,7 +25,7 @@ export default async function handler(
     try {
       const { data, error } = await supabase
         .from("amenities")
-        .select("*")
+        .select("id,name")
         .eq("id", amenityId)
         .single();
 
@@ -57,7 +57,7 @@ export default async function handler(
       // Check duplicate (excluding current ID)
       const { data: existing } = await supabase
         .from("amenities")
-        .select("*")
+        .select("id,name")
         .eq("name", cleanName)
         .neq("id", amenityId)
         .maybeSingle();
@@ -72,7 +72,7 @@ export default async function handler(
         .from("amenities")
         .update({ name: cleanName })
         .eq("id", amenityId)
-        .select()
+        .select("id,name")
         .single();
 
       if (error) {

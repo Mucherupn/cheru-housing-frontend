@@ -10,18 +10,21 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     const payload = {
-      property_type: req.body?.propertyType?.trim(),
-      average_price:
-        req.body?.averagePrice !== "" ? Number(req.body?.averagePrice) : null,
-      month: req.body?.month ? Number(req.body?.month) : null,
+      title: req.body?.title?.trim(),
+      content: req.body?.content?.trim() || null,
       year: req.body?.year ? Number(req.body?.year) : null,
+      location_id: req.body?.locationId || null,
     };
+
+    if (!payload.title || !payload.year || !payload.location_id) {
+      return res.status(400).json({ error: "Missing insights fields." });
+    }
 
     const { data, error } = await supabaseAdmin
       .from("insights_data")
       .update(payload)
       .eq("id", id)
-      .select("*")
+      .select("id,title,content,year,location_id,created_at,updated_at")
       .single();
 
     if (error) {

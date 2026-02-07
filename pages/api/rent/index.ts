@@ -35,13 +35,6 @@ const parseSizeRange = (value: string) => {
   return {};
 };
 
-const resolveImageUrl = (image: Record<string, any>) =>
-  image?.image_url ||
-  image?.url ||
-  image?.src ||
-  image?.path ||
-  image?.image;
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -63,33 +56,27 @@ export default async function handler(
       sort,
     } = req.query;
 
-    let locationFilter = "";
+    let query = supabaseAdmin
+      .from("listings")
+      .select(
+        "id,title,description,price,bedrooms,bathrooms,house_size,land_size,type,location_id,created_at,locations(name,slug)",
+        { count: "exact" }
+      );
 
     if (location && typeof location === "string") {
       const { data: locationData } = await supabaseAdmin
         .from("locations")
-        .select("*")
+        .select("id,name,slug")
         .or(`slug.ilike.%${location}%,name.ilike.%${location}%`)
         .maybeSingle();
 
-      if (locationData?.name) {
-        locationFilter = locationData.name;
-      } else {
-        locationFilter = location;
+      if (locationData?.id) {
+        query = query.eq("location_id", locationData.id);
       }
     }
 
-    let query = supabaseAdmin
-      .from("properties")
-      .select("*", { count: "exact" })
-      .eq("listing_type", "rent");
-
-    if (locationFilter) {
-      query = query.ilike("location", `%${locationFilter}%`);
-    }
-
     if (type && typeof type === "string") {
-      query = query.eq("property_type", type);
+      query = query.eq("type", type);
     }
 
     if (bedrooms && typeof bedrooms === "string") {
@@ -117,11 +104,13 @@ export default async function handler(
 
     if (size && typeof size === "string") {
       const { min, max } = parseSizeRange(size);
+      const isLand = type && typeof type === "string" && type.toLowerCase() === "land";
+      const sizeColumn = isLand ? "land_size" : "house_size";
       if (min !== undefined) {
-        query = query.gte("area", min);
+        query = query.gte(sizeColumn, min);
       }
       if (max !== undefined) {
-        query = query.lte("area", max);
+        query = query.lte(sizeColumn, max);
       }
     }
 
@@ -140,43 +129,24 @@ export default async function handler(
       return res.status(500).json({ error: "Failed to fetch rentals" });
     }
 
-    const propertyIds = (properties || [])
-      .map((property) => property.id)
-      .filter(Boolean);
+    const propertyIds = (properties || []).map((property) => property.id).filter(Boolean);
 
-    const [imagesResponse, amenitiesResponse] = await Promise.all([
-      propertyIds.length
-        ? supabaseAdmin.from("property_images").select("*").in("property_id", propertyIds)
-        : Promise.resolve({ data: [] }),
-      propertyIds.length
-        ? supabaseAdmin.from("amenities").select("*").in("property_id", propertyIds)
-        : Promise.resolve({ data: [] }),
-    ]);
+    const { data: amenities } = propertyIds.length
+      ? await supabaseAdmin
+          .from("property_amenities")
+          .select("listing_id,amenities(name)")
+          .in("listing_id", propertyIds)
+      : { data: [] };
 
-    const images = imagesResponse.data || [];
-    const amenities = amenitiesResponse.data || [];
-
-    const imagesByProperty = images.reduce<Record<number, string>>((acc, image) => {
-      const propertyId = image?.property_id;
-      if (!propertyId) return acc;
-      if (acc[propertyId]) return acc;
-      const imageUrl = resolveImageUrl(image);
-      if (imageUrl) {
-        acc[propertyId] = imageUrl;
-      }
-      return acc;
-    }, {});
-
-    const amenitiesByProperty = amenities.reduce<Record<number, string[]>>(
+    const amenitiesByProperty = (amenities || []).reduce<Record<string, string[]>>(
       (acc, amenity) => {
-        const propertyId = amenity?.property_id;
-        if (!propertyId) return acc;
-        const name = amenity?.name || amenity?.amenity;
-        if (!name) return acc;
-        if (!acc[propertyId]) {
-          acc[propertyId] = [];
+        const listingId = amenity?.listing_id;
+        const name = amenity?.amenities?.name;
+        if (!listingId || !name) return acc;
+        if (!acc[listingId]) {
+          acc[listingId] = [];
         }
-        acc[propertyId].push(String(name).toLowerCase());
+        acc[listingId].push(String(name).toLowerCase());
         return acc;
       },
       {}
@@ -186,14 +156,17 @@ export default async function handler(
       const amenityList = amenitiesByProperty[property.id] || [];
       return {
         id: property.id,
-        title: property.title || property.name || "Premium Rental",
-        location: property.location || locationFilter,
+        title: property.title || "Premium Rental",
+        location: property.locations?.name || "",
         price: property.price,
         bedrooms: property.bedrooms,
         bathrooms: property.bathrooms,
-        area: property.area,
-        image: imagesByProperty[property.id],
-        property_type: property.property_type,
+        area:
+          property.type?.toLowerCase?.() === "land"
+            ? property.land_size
+            : property.house_size,
+        image: null,
+        property_type: property.type,
         amenities: amenityList,
         parking: amenityList.includes("parking"),
         gym: amenityList.includes("gym"),

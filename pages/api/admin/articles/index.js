@@ -9,7 +9,9 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabaseAdmin
       .from("articles")
-      .select("*")
+      .select(
+        "id,title,slug,content,status,featured_image,created_at,updated_at"
+      )
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -41,7 +43,7 @@ export default async function handler(req, res) {
           featured_image: featuredImage,
         },
       ])
-      .select("*")
+      .select("id,title,slug,content,status,featured_image,created_at,updated_at")
       .single();
 
     if (error) {

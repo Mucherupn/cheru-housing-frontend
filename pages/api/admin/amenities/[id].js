@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       .from("amenities")
       .update({ name })
       .eq("id", id)
-      .select("*")
+      .select("id,name")
       .single();
 
     if (error) {

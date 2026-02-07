@@ -14,7 +14,6 @@ export default async function handler(
     const {
       location,
       type,
-      status,
       minPrice,
       maxPrice,
       bedrooms,
@@ -23,18 +22,26 @@ export default async function handler(
       maxArea,
     } = req.query;
 
-    let query = supabase.from("properties").select("*");
+    let query = supabase
+      .from("listings")
+      .select(
+        "id,title,price,bedrooms,bathrooms,house_size,land_size,type,location_id,created_at,locations(name,slug)"
+      );
 
     if (location && typeof location === "string") {
-      query = query.ilike("location", `%${location}%`);
+      const { data: locationData } = await supabase
+        .from("locations")
+        .select("id,name,slug")
+        .or(`slug.ilike.%${location}%,name.ilike.%${location}%`)
+        .maybeSingle();
+
+      if (locationData?.id) {
+        query = query.eq("location_id", locationData.id);
+      }
     }
 
     if (type && typeof type === "string") {
-      query = query.eq("property_type", type);
-    }
-
-    if (status && typeof status === "string") {
-      query = query.eq("status", status);
+      query = query.eq("type", type);
     }
 
     if (bedrooms && !Array.isArray(bedrooms)) {
@@ -53,12 +60,15 @@ export default async function handler(
       query = query.lte("price", Number(maxPrice));
     }
 
+    const isLand = type && typeof type === "string" && type.toLowerCase() === "land";
+    const areaColumn = isLand ? "land_size" : "house_size";
+
     if (minArea && !Array.isArray(minArea)) {
-      query = query.gte("area", Number(minArea));
+      query = query.gte(areaColumn, Number(minArea));
     }
 
     if (maxArea && !Array.isArray(maxArea)) {
-      query = query.lte("area", Number(maxArea));
+      query = query.lte(areaColumn, Number(maxArea));
     }
 
     const { data, error } = await query;
@@ -68,7 +78,22 @@ export default async function handler(
       return res.status(500).json({ error: "Search failed" });
     }
 
-    return res.status(200).json(data || []);
+    const results = (data || []).map((listing) => ({
+      id: listing.id,
+      title: listing.title,
+      location: listing.locations?.name || "",
+      price: listing.price,
+      bedrooms: listing.bedrooms,
+      bathrooms: listing.bathrooms,
+      area:
+        listing.type?.toLowerCase?.() === "land"
+          ? listing.land_size
+          : listing.house_size,
+      image_url: null,
+      property_type: listing.type || null,
+    }));
+
+    return res.status(200).json(results);
   } catch (err) {
     console.error("Server error:", err);
     return res.status(500).json({ error: "Internal server error" });

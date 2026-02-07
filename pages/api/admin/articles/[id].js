@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       .from("articles")
       .update(payload)
       .eq("id", id)
-      .select("*")
+      .select("id,title,slug,content,status,featured_image,created_at,updated_at")
       .single();
 
     if (error) {

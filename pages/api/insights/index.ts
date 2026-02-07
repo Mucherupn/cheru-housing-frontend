@@ -64,7 +64,9 @@ export default async function handler(
 
     const { data: properties, error: propertiesError } = await supabaseAdmin
       .from("insights_properties")
-      .select("*")
+      .select(
+        "id,title,slug,location_id,property_type,description,asking_price_min,asking_price_max,rent_price_min,rent_price_max,year_built,total_units,unit_types,size_range,developer,parking_ratio,created_at"
+      )
       .eq("location_id", locationData.id)
       .order("created_at", { ascending: false });
 
@@ -91,7 +93,7 @@ export default async function handler(
 
     const { data: articles, error: articlesError } = await supabaseAdmin
       .from("area_articles")
-      .select("*")
+      .select("id,slug,title,excerpt,content,image_url,location_id,created_at")
       .eq("location_id", locationData.id)
       .order("created_at", { ascending: false });
 
