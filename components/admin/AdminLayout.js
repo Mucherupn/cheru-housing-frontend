@@ -12,6 +12,7 @@ import {
   FiUploadCloud,
   FiUsers,
 } from "react-icons/fi";
+import useAdminGuard from "../../hooks/useAdminGuard";
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: FiGrid },
@@ -45,6 +46,19 @@ const SidebarLink = ({ item, isActive }) => {
 
 const AdminLayout = ({ title, subtitle, children }) => {
   const router = useRouter();
+  const { session, loading } = useAdminGuard();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">
+        Loading admin session...
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -96,9 +110,13 @@ const AdminLayout = ({ title, subtitle, children }) => {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Admin: cheru@hq.io
+                Admin: {session.user?.email || "Signed in"}
               </div>
-              <button className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white">
+              <button
+                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white"
+                onClick={() => router.push("/admin/listings")}
+                type="button"
+              >
                 New Action
               </button>
             </div>
