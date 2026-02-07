@@ -26,6 +26,7 @@ const Buy = () => {
           <SearchBar 
             placeholder="Where would you like to live? E.g. Karen, Kilimani, Runda..." 
             buttonText="Search Homes"
+            basePath="/buy"
           />
         </div>
 

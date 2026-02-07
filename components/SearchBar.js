@@ -1,7 +1,18 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 
-const SearchBar = () => {
+const slugifyLocation = (value) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
+
+const SearchBar = ({
+  placeholder = "Search Estates: E.g Karen, Westlands, Kilimani, Lavington, Runda",
+  buttonText = "Search",
+  basePath = "/search",
+}) => {
   const [location, setLocation] = useState("");
   const router = useRouter();
 
@@ -10,7 +21,13 @@ const SearchBar = () => {
 
     if (!location.trim()) return;
 
-    router.push(`/search?location=${encodeURIComponent(location)}`);
+    if (basePath === "/search") {
+      router.push(`/search?location=${encodeURIComponent(location)}`);
+      return;
+    }
+
+    const slug = slugifyLocation(location);
+    router.push(`${basePath}/${slug}`);
   };
 
   return (
@@ -26,14 +43,14 @@ const SearchBar = () => {
         name="location"
         value={location}
         onChange={(e) => setLocation(e.target.value)}
-        placeholder="Search Estates: E.g Karen, Westlands, Kilimani, Lavington, Runda"
+        placeholder={placeholder}
         className="flex-1 rounded-xl border border-white/10 bg-white px-4 py-3 text-sm text-white placeholder:text-[#4B5563] focus:border-[#ffffff] focus:outline-none focus:ring-2 focus:ring-[#012169]/40"
       />
       <button
         type="submit"
         className="rounded-xl bg-[#012169] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#012169]/90"
       >
-        Search
+        {buttonText}
       </button>
     </form>
   );
