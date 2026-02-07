@@ -29,6 +29,9 @@ type FiltersState = {
   type: string;
   bedrooms: string;
   bathrooms: string;
+  price: string;
+  size: string;
+  sort: string;
   priceRange: string;
   areaRange: string;
 };
@@ -41,6 +44,38 @@ const PRICE_RANGES = {
   "30m-60m": { label: "30M – 60M", min: 30_000_000, max: 60_000_000 },
   "60m-100m": { label: "60M – 100M", min: 60_000_000, max: 100_000_000 },
   "100m-150m": { label: "100M – 150M", min: 100_000_000, max: 150_000_000 },
+  "150m-plus": { label: "150M+", min: 150_000_000, max: undefined },
+};
+
+const ACRE_IN_SQM = 4046.86;
+
+const LAND_SIZE_RANGES = {
+  "": { label: "Size", min: undefined, max: undefined },
+  "quarter-and-below": {
+    label: "1/4 acre and below",
+    min: undefined,
+    max: 0.25 * ACRE_IN_SQM,
+  },
+  "half-acre": {
+    label: "1/2 acre",
+    min: 0.25 * ACRE_IN_SQM,
+    max: 0.5 * ACRE_IN_SQM,
+  },
+  "one-acre": {
+    label: "1 acre",
+    min: 0.5 * ACRE_IN_SQM,
+    max: 1 * ACRE_IN_SQM,
+  },
+  "two-acres": {
+    label: "2 acres",
+    min: 1 * ACRE_IN_SQM,
+    max: 2 * ACRE_IN_SQM,
+  },
+  "three-plus": {
+    label: "3+ acres",
+    min: 3 * ACRE_IN_SQM,
+    max: undefined,
+  },
   "above-150m": { label: "Above 150M", min: 150_000_000, max: undefined },
 };
 
@@ -82,6 +117,9 @@ export default function BuyLocationPage() {
     type: "",
     bedrooms: "",
     bathrooms: "",
+    price: "",
+    size: "",
+    sort: "newest",
     priceRange: "",
     areaRange: "",
   });
@@ -114,6 +152,14 @@ export default function BuyLocationPage() {
       typeof router.query.bedrooms === "string" ? router.query.bedrooms : "";
     const queryBathrooms =
       typeof router.query.bathrooms === "string" ? router.query.bathrooms : "";
+    const queryPrice = typeof router.query.price === "string" ? router.query.price : "";
+    const querySize = typeof router.query.size === "string" ? router.query.size : "";
+    const querySort = typeof router.query.sort === "string" ? router.query.sort : "newest";
+
+    const matchedPriceRange = queryPrice in PRICE_RANGES ? queryPrice : "";
+    const matchedSizeRange = querySize in LAND_SIZE_RANGES ? querySize : "";
+
+    const isLandType = queryType.toLowerCase() === "land";
     const queryMinPrice =
       typeof router.query.minPrice === "string"
         ? Number(router.query.minPrice)
@@ -144,6 +190,11 @@ export default function BuyLocationPage() {
     setFilters({
       location: queryLocation || formattedLocation,
       type: queryType,
+      bedrooms: isLandType ? "" : queryBedrooms,
+      bathrooms: isLandType ? "" : queryBathrooms,
+      price: matchedPriceRange,
+      size: isLandType ? matchedSizeRange : "",
+      sort: querySort,
       bedrooms: queryBedrooms,
       bathrooms: queryBathrooms,
       priceRange: matchedPriceRange ? matchedPriceRange[0] : "",
@@ -176,6 +227,7 @@ export default function BuyLocationPage() {
         params.set("bathrooms", activeFilters.bathrooms);
       }
 
+      const priceRange = PRICE_RANGES[activeFilters.price];
       const priceRange = PRICE_RANGES[activeFilters.priceRange];
       if (priceRange?.min !== undefined) {
         params.set("minPrice", String(priceRange.min));
@@ -184,12 +236,12 @@ export default function BuyLocationPage() {
         params.set("maxPrice", String(priceRange.max));
       }
 
-      const areaRange = AREA_RANGES[activeFilters.areaRange];
-      if (areaRange?.min !== undefined) {
-        params.set("minArea", String(areaRange.min));
+      const sizeRange = LAND_SIZE_RANGES[activeFilters.size];
+      if (sizeRange?.min !== undefined) {
+        params.set("minArea", String(Math.round(sizeRange.min)));
       }
-      if (areaRange?.max !== undefined) {
-        params.set("maxArea", String(areaRange.max));
+      if (sizeRange?.max !== undefined) {
+        params.set("maxArea", String(Math.round(sizeRange.max)));
       }
 
       params.set("status", "buy");
@@ -233,7 +285,21 @@ export default function BuyLocationPage() {
   }, [router.isReady, filters, formattedLocation]);
 
   const handleFilterChange = (field: keyof FiltersState, value: string) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+    setFilters((prev) => {
+      if (field === "type") {
+        const nextType = value;
+        const isLand = nextType.toLowerCase() === "land";
+        return {
+          ...prev,
+          type: nextType,
+          bedrooms: isLand ? "" : prev.bedrooms,
+          bathrooms: isLand ? "" : prev.bathrooms,
+          size: isLand ? prev.size : "",
+        };
+      }
+
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleApplyFilters = () => {
@@ -246,14 +312,9 @@ export default function BuyLocationPage() {
     if (filters.type) queryParams.type = filters.type;
     if (filters.bedrooms) queryParams.bedrooms = filters.bedrooms;
     if (filters.bathrooms) queryParams.bathrooms = filters.bathrooms;
-
-    const priceRange = PRICE_RANGES[filters.priceRange];
-    if (priceRange?.min !== undefined) queryParams.minPrice = String(priceRange.min);
-    if (priceRange?.max !== undefined) queryParams.maxPrice = String(priceRange.max);
-
-    const areaRange = AREA_RANGES[filters.areaRange];
-    if (areaRange?.min !== undefined) queryParams.minArea = String(areaRange.min);
-    if (areaRange?.max !== undefined) queryParams.maxArea = String(areaRange.max);
+    if (filters.price) queryParams.price = filters.price;
+    if (filters.size) queryParams.size = filters.size;
+    if (filters.sort && filters.sort !== "newest") queryParams.sort = filters.sort;
 
     router.push({ pathname: `/buy/${slug}`, query: queryParams }, undefined, {
       shallow: true,
@@ -262,6 +323,21 @@ export default function BuyLocationPage() {
 
   const filterInput =
     "rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-[#012169] focus:outline-none focus:ring-2 focus:ring-[#012169]/20";
+  const isLand = filters.type.toLowerCase() === "land";
+
+  const sortedResults = useMemo(() => {
+    const ordered = [...results];
+
+    if (filters.sort === "price-asc") {
+      ordered.sort((a, b) => a.price - b.price);
+    }
+
+    if (filters.sort === "price-desc") {
+      ordered.sort((a, b) => b.price - a.price);
+    }
+
+    return ordered;
+  }, [filters.sort, results]);
 
   return (
     <div className="min-h-screen bg-[#f6f8fc] text-[#0B1220]">
@@ -316,43 +392,61 @@ export default function BuyLocationPage() {
               <option value="Land">Land</option>
             </select>
 
-            <select
-              className={filterInput}
-              value={filters.bedrooms}
-              onChange={(event) =>
-                handleFilterChange("bedrooms", event.target.value)
-              }
-            >
-              <option value="">Bedrooms</option>
-              <option value="0">Studio</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6+</option>
-            </select>
+            {!isLand && (
+              <select
+                className={filterInput}
+                value={filters.bedrooms}
+                onChange={(event) =>
+                  handleFilterChange("bedrooms", event.target.value)
+                }
+              >
+                <option value="">Bedrooms</option>
+                <option value="0">Studio</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="5">5+</option>
+              </select>
+            )}
+
+            {!isLand && (
+              <select
+                className={filterInput}
+                value={filters.bathrooms}
+                onChange={(event) =>
+                  handleFilterChange("bathrooms", event.target.value)
+                }
+              >
+                <option value="">Bathrooms</option>
+                <option value="1">1+</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+              </select>
+            )}
+
+            {isLand && (
+              <select
+                className={filterInput}
+                value={filters.size}
+                onChange={(event) =>
+                  handleFilterChange("size", event.target.value)
+                }
+              >
+                {Object.entries(LAND_SIZE_RANGES).map(([value, range]) => (
+                  <option key={value} value={value}>
+                    {range.label}
+                  </option>
+                ))}
+              </select>
+            )}
 
             <select
               className={filterInput}
-              value={filters.bathrooms}
+              value={filters.price}
               onChange={(event) =>
-                handleFilterChange("bathrooms", event.target.value)
-              }
-            >
-              <option value="">Bathrooms</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5+</option>
-            </select>
-
-            <select
-              className={filterInput}
-              value={filters.priceRange}
-              onChange={(event) =>
-                handleFilterChange("priceRange", event.target.value)
+                handleFilterChange("price", event.target.value)
               }
             >
               {Object.entries(PRICE_RANGES).map(([value, range]) => (
@@ -364,16 +458,14 @@ export default function BuyLocationPage() {
 
             <select
               className={filterInput}
-              value={filters.areaRange}
+              value={filters.sort}
               onChange={(event) =>
-                handleFilterChange("areaRange", event.target.value)
+                handleFilterChange("sort", event.target.value)
               }
             >
-              {Object.entries(AREA_RANGES).map(([value, range]) => (
-                <option key={value} value={value}>
-                  {range.label}
-                </option>
-              ))}
+              <option value="newest">Sort: Newest</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
             </select>
 
             <button
@@ -394,7 +486,7 @@ export default function BuyLocationPage() {
             <h2 className="text-2xl font-semibold text-gray-900">
               {loading
                 ? "Searching premium listings..."
-                : `${results.length} Properties Found`}
+                : `${sortedResults.length} Properties Found`}
             </h2>
             <p className="text-sm text-gray-500">
               {formattedLocation
@@ -427,7 +519,7 @@ export default function BuyLocationPage() {
               Try Again
             </button>
           </div>
-        ) : results.length === 0 ? (
+        ) : sortedResults.length === 0 ? (
           <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900">
               No properties in this area
@@ -444,7 +536,7 @@ export default function BuyLocationPage() {
           </div>
         ) : (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {results.map((property) => (
+            {sortedResults.map((property) => (
               <div
                 key={property.id}
                 className="group overflow-hidden rounded-2xl bg-white shadow-sm transition hover:shadow-lg"
