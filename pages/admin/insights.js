@@ -9,9 +9,8 @@ const InsightsPage = () => {
   const [locations, setLocations] = useState([]);
   const [formState, setFormState] = useState({
     locationId: "",
-    propertyType: "",
-    averagePrice: "",
-    month: "",
+    title: "",
+    content: "",
     year: "",
   });
 
@@ -36,9 +35,8 @@ const InsightsPage = () => {
     });
     setFormState({
       locationId: "",
-      propertyType: "",
-      averagePrice: "",
-      month: "",
+      title: "",
+      content: "",
       year: "",
     });
     await loadData();
@@ -46,9 +44,8 @@ const InsightsPage = () => {
 
   const rows = insights.map((insight) => [
     insight.locations?.name || "-",
-    insight.property_type,
-    insight.average_price ? `KES ${Number(insight.average_price).toLocaleString()}` : "-",
-    `${insight.month}/${insight.year}`,
+    insight.title || "-",
+    insight.year || "-",
     <button
       key={insight.id}
       className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-500"
@@ -67,13 +64,13 @@ const InsightsPage = () => {
   return (
     <AdminLayout
       title="Insights"
-      subtitle="Track market pricing signals and monthly performance trends."
+      subtitle="Track market pricing signals and annual performance trends."
     >
       <SectionCard
         title="Market Insights"
-        description="Add monthly average pricing signals for each location."
+        description="Add annual market insights for each location."
       >
-        <form onSubmit={handleSubmit} className="mb-6 grid gap-4 md:grid-cols-5">
+        <form onSubmit={handleSubmit} className="mb-6 grid gap-4 md:grid-cols-4">
           <select
             className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
             value={formState.locationId}
@@ -94,40 +91,26 @@ const InsightsPage = () => {
           </select>
           <input
             className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
-            placeholder="Property type"
-            value={formState.propertyType}
+            placeholder="Insight title"
+            value={formState.title}
             onChange={(event) =>
               setFormState((prev) => ({
                 ...prev,
-                propertyType: event.target.value,
+                title: event.target.value,
               }))
             }
             required
           />
           <input
-            type="number"
             className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
-            placeholder="Average price"
-            value={formState.averagePrice}
+            placeholder="Insight summary"
+            value={formState.content}
             onChange={(event) =>
               setFormState((prev) => ({
                 ...prev,
-                averagePrice: event.target.value,
+                content: event.target.value,
               }))
             }
-          />
-          <input
-            type="number"
-            className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs"
-            placeholder="Month"
-            value={formState.month}
-            onChange={(event) =>
-              setFormState((prev) => ({
-                ...prev,
-                month: event.target.value,
-              }))
-            }
-            required
           />
           <input
             type="number"
@@ -153,9 +136,8 @@ const InsightsPage = () => {
         <DataTable
           columns={[
             "Location",
-            "Property Type",
-            "Avg Price",
-            "Month",
+            "Title",
+            "Year",
             "Actions",
           ]}
           rows={rows}

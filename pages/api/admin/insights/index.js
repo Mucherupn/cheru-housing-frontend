@@ -9,9 +9,11 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabaseAdmin
       .from("insights_data")
-      .select("*, locations(name)")
+      .select(
+        "id,title,content,year,location_id,created_at,updated_at,locations(name)"
+      )
       .order("year", { ascending: false })
-      .order("month", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -22,12 +24,11 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     const locationId = req.body?.locationId;
-    const propertyType = req.body?.propertyType?.trim();
-    const averagePrice = req.body?.averagePrice;
-    const month = req.body?.month;
+    const title = req.body?.title?.trim();
+    const content = req.body?.content?.trim();
     const year = req.body?.year;
 
-    if (!locationId || !propertyType || !month || !year) {
+    if (!locationId || !title || !year) {
       return res.status(400).json({ error: "Missing insights fields." });
     }
 
@@ -36,13 +37,12 @@ export default async function handler(req, res) {
       .insert([
         {
           location_id: locationId,
-          property_type: propertyType,
-          average_price: averagePrice !== "" ? Number(averagePrice) : null,
-          month: Number(month),
+          title,
+          content: content || null,
           year: Number(year),
         },
       ])
-      .select("*")
+      .select("id,title,content,year,location_id,created_at,updated_at")
       .single();
 
     if (error) {

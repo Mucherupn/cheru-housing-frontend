@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data, error } = await supabaseAdmin
       .from("amenities")
-      .select("*")
+      .select("id,name")
       .order("name");
 
     if (error) {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabaseAdmin
       .from("amenities")
       .insert([{ name }])
-      .select("*")
+      .select("id,name")
       .single();
 
     if (error) {

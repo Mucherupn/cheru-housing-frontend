@@ -1,34 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import DataTable from "../../components/admin/DataTable";
 import SectionCard from "../../components/admin/SectionCard";
 import { apiRequest } from "../../utils/adminApi";
-import { supabase } from "../../utils/supabaseClient";
 
 const initialFormState = {
   title: "",
   description: "",
   price: "",
-  propertyType: "",
-  listingType: "sale",
+  type: "",
   locationId: "",
-  neighbourhoodId: "",
-  size: "",
+  houseSize: "",
+  landSize: "",
   bedrooms: "",
   bathrooms: "",
   yearBuilt: "",
-  status: "active",
+  floor: "",
+  apartmentName: "",
 };
 
 const ListingsPage = () => {
   const [listings, setListings] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [neighbourhoods, setNeighbourhoods] = useState([]);
   const [amenities, setAmenities] = useState([]);
   const [formState, setFormState] = useState(initialFormState);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
-  const [featuredImage, setFeaturedImage] = useState(null);
-  const [galleryImages, setGalleryImages] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -42,7 +38,6 @@ const ListingsPage = () => {
 
     setListings(listingPayload.listings || []);
     setLocations(locationPayload.locations || []);
-    setNeighbourhoods(locationPayload.neighbourhoods || []);
     setAmenities(amenityPayload.amenities || []);
   };
 
@@ -50,34 +45,10 @@ const ListingsPage = () => {
     loadData();
   }, []);
 
-  const filteredNeighbourhoods = useMemo(() => {
-    if (!formState.locationId) return neighbourhoods;
-    return neighbourhoods.filter(
-      (item) => item.location_id === formState.locationId
-    );
-  }, [neighbourhoods, formState.locationId]);
-
   const resetForm = () => {
     setFormState(initialFormState);
     setSelectedAmenities([]);
-    setFeaturedImage(null);
-    setGalleryImages([]);
     setEditingId(null);
-  };
-
-  const uploadListingImage = async (listingId, file, label) => {
-    const extension = file.name.split(".").pop();
-    const filePath = `${listingId}/${label}.${extension}`;
-
-    const { error } = await supabase.storage
-      .from("listing-images")
-      .upload(filePath, file, { upsert: true });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return filePath;
   };
 
   const handleSubmit = async (event) => {
@@ -103,42 +74,6 @@ const ListingsPage = () => {
       });
     }
 
-    const listingId = editingId || listingResponse.listing?.id;
-
-    const updates = { ...payload };
-
-    if (featuredImage && listingId) {
-      updates.featuredImage = await uploadListingImage(
-        listingId,
-        featuredImage,
-        "featured"
-      );
-    }
-
-    if (galleryImages.length && listingId) {
-      const uploadedGallery = [];
-      for (const [index, file] of galleryImages.entries()) {
-        const imagePath = await uploadListingImage(
-          listingId,
-          file,
-          `gallery-${index + 1}`
-        );
-        uploadedGallery.push(imagePath);
-      }
-      updates.galleryImages = uploadedGallery;
-    }
-
-    if (listingId && (updates.featuredImage || updates.galleryImages)) {
-      await apiRequest(`/api/admin/listings/${listingId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          ...payload,
-          featuredImage: updates.featuredImage,
-          galleryImages: updates.galleryImages,
-        }),
-      });
-    }
-
     await loadData();
     setStatusMessage(editingId ? "Listing updated." : "Listing created.");
     resetForm();
@@ -150,18 +85,18 @@ const ListingsPage = () => {
       title: listing.title || "",
       description: listing.description || "",
       price: listing.price || "",
-      propertyType: listing.property_type || "",
-      listingType: listing.listing_type || "sale",
+      type: listing.type || "",
       locationId: listing.location_id || "",
-      neighbourhoodId: listing.neighbourhood_id || "",
-      size: listing.size || "",
+      houseSize: listing.house_size || "",
+      landSize: listing.land_size || "",
       bedrooms: listing.bedrooms || "",
       bathrooms: listing.bathrooms || "",
       yearBuilt: listing.year_built || "",
-      status: listing.status || "active",
+      floor: listing.floor || "",
+      apartmentName: listing.apartment_name || "",
     });
     setSelectedAmenities(
-      listing.listing_amenities?.map((item) => item.amenity_id) || []
+      listing.property_amenities?.map((item) => item.amenity_id) || []
     );
   };
 
@@ -172,10 +107,10 @@ const ListingsPage = () => {
 
   const listingRows = listings.map((listing) => [
     listing.title,
-    listing.listing_type,
+    listing.type,
     listing.price ? `KES ${Number(listing.price).toLocaleString()}` : "-",
     listing.bedrooms ? `${listing.bedrooms} Beds` : "-",
-    listing.status,
+    listing.locations?.name || "-",
     <div key={listing.id} className="flex gap-2">
       <button
         type="button"
@@ -201,10 +136,10 @@ const ListingsPage = () => {
     >
       <SectionCard
         title="Listings Library"
-        description="Manage core property data, media, and status states in one streamlined view."
+        description="Manage core property data and amenity coverage in one streamlined view."
       >
         <DataTable
-          columns={["Listing", "Type", "Price", "Beds", "Status", "Actions"]}
+          columns={["Listing", "Type", "Price", "Beds", "Location", "Actions"]}
           rows={listingRows}
         />
       </SectionCard>
@@ -263,50 +198,50 @@ const ListingsPage = () => {
 
             <div className="grid gap-4 md:grid-cols-3">
               <label className="flex flex-col gap-2">
-                Listing Type
+                Type
                 <select
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2"
-                  value={formState.listingType}
+                  value={formState.type}
                   onChange={(event) =>
                     setFormState((prev) => ({
                       ...prev,
-                      listingType: event.target.value,
+                      type: event.target.value,
                     }))
                   }
+                  required
                 >
-                  <option value="sale">Sale</option>
-                  <option value="rent">Rent</option>
+                  <option value="">Select type</option>
+                  <option value="House">House</option>
+                  <option value="Apartment">Apartment</option>
+                  <option value="Land">Land</option>
                 </select>
               </label>
               <label className="flex flex-col gap-2">
-                Property Type
+                Apartment Name
                 <input
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2"
-                  value={formState.propertyType}
+                  value={formState.apartmentName}
                   onChange={(event) =>
                     setFormState((prev) => ({
                       ...prev,
-                      propertyType: event.target.value,
+                      apartmentName: event.target.value,
                     }))
                   }
                 />
               </label>
               <label className="flex flex-col gap-2">
-                Status
-                <select
+                Floor
+                <input
+                  type="number"
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2"
-                  value={formState.status}
+                  value={formState.floor}
                   onChange={(event) =>
                     setFormState((prev) => ({
                       ...prev,
-                      status: event.target.value,
+                      floor: event.target.value,
                     }))
                   }
-                >
-                  <option value="active">Active</option>
-                  <option value="draft">Draft</option>
-                  <option value="pending">Pending</option>
-                </select>
+                />
               </label>
             </div>
 
@@ -320,7 +255,6 @@ const ListingsPage = () => {
                     setFormState((prev) => ({
                       ...prev,
                       locationId: event.target.value,
-                      neighbourhoodId: "",
                     }))
                   }
                   required
@@ -333,39 +267,33 @@ const ListingsPage = () => {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-2">
-                Neighbourhood
-                <select
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2"
-                  value={formState.neighbourhoodId}
-                  onChange={(event) =>
-                    setFormState((prev) => ({
-                      ...prev,
-                      neighbourhoodId: event.target.value,
-                    }))
-                  }
-                >
-                  <option value="">Select neighbourhood</option>
-                  {filteredNeighbourhoods.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
               <label className="flex flex-col gap-2">
-                Size (sqm)
+                House Size (sqm)
                 <input
                   type="number"
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2"
-                  value={formState.size}
+                  value={formState.houseSize}
                   onChange={(event) =>
                     setFormState((prev) => ({
                       ...prev,
-                      size: event.target.value,
+                      houseSize: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                Land Size (acres)
+                <input
+                  type="number"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2"
+                  value={formState.landSize}
+                  onChange={(event) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      landSize: event.target.value,
                     }))
                   }
                 />
@@ -437,30 +365,6 @@ const ListingsPage = () => {
                   </label>
                 ))}
               </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="flex flex-col gap-2">
-                Featured Image
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) =>
-                    setFeaturedImage(event.target.files?.[0] || null)
-                  }
-                />
-              </label>
-              <label className="flex flex-col gap-2">
-                Gallery Images
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(event) =>
-                    setGalleryImages(Array.from(event.target.files || []))
-                  }
-                />
-              </label>
             </div>
 
             {statusMessage ? (

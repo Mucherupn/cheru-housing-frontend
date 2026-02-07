@@ -72,10 +72,9 @@ const AdminDashboard = () => {
     () =>
       listings.slice(0, 5).map((listing) => [
         listing.title,
-        listing.listing_type,
+        listing.type,
         formatCurrency(Number(listing.price) || 0),
-        listing.status,
-        new Date(listing.created_at).toLocaleDateString(),
+        new Date(listing.updated_at || listing.created_at).toLocaleDateString(),
       ]),
     [listings]
   );
@@ -83,9 +82,8 @@ const AdminDashboard = () => {
   const locationRows = useMemo(() => {
     return insights.slice(0, 5).map((insight) => [
       insight.locations?.name || "Unknown",
-      formatCurrency(Number(insight.average_price) || 0),
-      insight.property_type || "-",
-      `${insight.month}/${insight.year}`,
+      insight.title || "-",
+      insight.year || "-",
     ]);
   }, [insights]);
 
@@ -111,7 +109,7 @@ const AdminDashboard = () => {
           }
         >
           <DataTable
-            columns={["Location", "Avg Price", "Top Types", "Month"]}
+            columns={["Location", "Title", "Year"]}
             rows={locationRows}
           />
         </SectionCard>
@@ -126,7 +124,7 @@ const AdminDashboard = () => {
           }
         >
           <DataTable
-            columns={["Listing", "Type", "Price", "Status", "Updated"]}
+            columns={["Listing", "Type", "Price", "Updated"]}
             rows={activityRows}
           />
         </SectionCard>

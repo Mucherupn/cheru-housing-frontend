@@ -11,17 +11,16 @@ const headerMap = {
   title: "title",
   description: "description",
   price: "price",
-  propertytype: "propertyType",
-  listingtype: "listingType",
+  type: "type",
   location: "location",
-  neighbourhood: "neighbourhood",
-  size: "size",
+  housesize: "houseSize",
+  landsize: "landSize",
   bedrooms: "bedrooms",
   bathrooms: "bathrooms",
   yearbuilt: "yearBuilt",
+  floor: "floor",
+  apartmentname: "apartmentName",
   amenities: "amenities",
-  featuredimage: "featuredImage",
-  galleryimages: "galleryImages",
 };
 
 const mapRow = (row) => {

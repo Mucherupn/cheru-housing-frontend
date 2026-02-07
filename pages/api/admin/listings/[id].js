@@ -4,16 +4,15 @@ const normalizeListingPayload = (payload) => ({
   title: payload.title?.trim(),
   description: payload.description?.trim() || null,
   price: payload.price !== "" ? Number(payload.price) : null,
-  property_type: payload.propertyType?.trim() || null,
-  listing_type: payload.listingType?.trim() || null,
+  type: payload.type?.trim() || null,
   location_id: payload.locationId || null,
-  neighbourhood_id: payload.neighbourhoodId || null,
-  size: payload.size !== "" ? Number(payload.size) : null,
   bedrooms: payload.bedrooms !== "" ? Number(payload.bedrooms) : null,
   bathrooms: payload.bathrooms !== "" ? Number(payload.bathrooms) : null,
   year_built: payload.yearBuilt !== "" ? Number(payload.yearBuilt) : null,
-  status: payload.status?.trim() || null,
-  featured_image: payload.featuredImage || null,
+  house_size: payload.houseSize !== "" ? Number(payload.houseSize) : null,
+  land_size: payload.landSize !== "" ? Number(payload.landSize) : null,
+  floor: payload.floor !== "" ? Number(payload.floor) : null,
+  apartment_name: payload.apartmentName?.trim() || null,
 });
 
 export default async function handler(req, res) {
@@ -27,21 +26,21 @@ export default async function handler(req, res) {
   if (req.method === "PUT") {
     const payload = normalizeListingPayload(req.body || {});
     const amenityIds = req.body?.amenityIds || [];
-    const galleryImages = req.body?.galleryImages || [];
 
     const { data: listing, error: listingError } = await supabaseAdmin
       .from("listings")
       .update(payload)
       .eq("id", id)
-      .select("*")
+      .select(
+        "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at"
+      )
       .single();
 
     if (listingError) {
       return res.status(500).json({ error: listingError.message });
     }
 
-    await supabaseAdmin.from("listing_amenities").delete().eq("listing_id", id);
-    await supabaseAdmin.from("listing_images").delete().eq("listing_id", id);
+    await supabaseAdmin.from("property_amenities").delete().eq("listing_id", id);
 
     if (amenityIds.length > 0) {
       const amenityRows = amenityIds.map((amenityId) => ({
@@ -49,23 +48,10 @@ export default async function handler(req, res) {
         amenity_id: amenityId,
       }));
       const { error: amenityError } = await supabaseAdmin
-        .from("listing_amenities")
+        .from("property_amenities")
         .insert(amenityRows);
       if (amenityError) {
         return res.status(500).json({ error: amenityError.message });
-      }
-    }
-
-    if (galleryImages.length > 0) {
-      const imageRows = galleryImages.map((imagePath) => ({
-        listing_id: id,
-        image_path: imagePath,
-      }));
-      const { error: imageError } = await supabaseAdmin
-        .from("listing_images")
-        .insert(imageRows);
-      if (imageError) {
-        return res.status(500).json({ error: imageError.message });
       }
     }
 
@@ -73,8 +59,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
-    await supabaseAdmin.from("listing_amenities").delete().eq("listing_id", id);
-    await supabaseAdmin.from("listing_images").delete().eq("listing_id", id);
+    await supabaseAdmin.from("property_amenities").delete().eq("listing_id", id);
 
     const { error } = await supabaseAdmin.from("listings").delete().eq("id", id);
 

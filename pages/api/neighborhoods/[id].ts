@@ -1,17 +1,6 @@
 // File: pages/api/neighborhoods/[id].ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "../../../utils/supabaseClient";
-
-type Neighborhood = {
-  id: number;
-  name: string;
-  created_at: string;
-};
-
-type Data =
-  | { neighborhood: Neighborhood }
-  | { message: string }
-  | { error: string };
+type Data = { error: string };
 
 export default async function handler(
   req: NextApiRequest,
@@ -25,65 +14,15 @@ export default async function handler(
 
   try {
     if (req.method === "GET") {
-      // Fetch a single neighborhood
-      const { data, error } = await supabase
-        .from("neighborhoods")
-        .select("*")
-        .eq("id", Number(id))
-        .single();
-
-      if (error) {
-        return res.status(404).json({ error: "Neighborhood not found" });
-      }
-
-      return res.status(200).json({ neighborhood: data });
+      return res.status(410).json({ error: "Neighborhoods are no longer supported." });
     }
 
     if (req.method === "PUT") {
-      // Update neighborhood
-      const { name } = req.body;
-      if (!name || name.trim() === "") {
-        return res.status(400).json({ error: "Neighborhood name is required" });
-      }
-
-      // Check if name already exists in another neighborhood
-      const { data: existing, error: checkError } = await supabase
-        .from("neighborhoods")
-        .select("*")
-        .eq("name", name)
-        .neq("id", Number(id))
-        .single();
-
-      if (existing) {
-        return res.status(409).json({ error: "Neighborhood name already exists" });
-      }
-
-      const { data, error } = await supabase
-        .from("neighborhoods")
-        .update({ name })
-        .eq("id", Number(id))
-        .select()
-        .single();
-
-      if (error) {
-        return res.status(500).json({ error: error.message });
-      }
-
-      return res.status(200).json({ neighborhood: data });
+      return res.status(410).json({ error: "Neighborhoods are no longer supported." });
     }
 
     if (req.method === "DELETE") {
-      // Delete neighborhood
-      const { error } = await supabase
-        .from("neighborhoods")
-        .delete()
-        .eq("id", Number(id));
-
-      if (error) {
-        return res.status(500).json({ error: error.message });
-      }
-
-      return res.status(200).json({ message: "Neighborhood deleted successfully" });
+      return res.status(410).json({ error: "Neighborhoods are no longer supported." });
     }
 
     res.setHeader("Allow", ["GET", "PUT", "DELETE"]);

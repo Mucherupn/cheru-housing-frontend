@@ -9,59 +9,32 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { data: locations, error: locationError } = await supabaseAdmin
       .from("locations")
-      .select("*")
+      .select("id,name,slug")
       .order("name");
 
     if (locationError) {
       return res.status(500).json({ error: locationError.message });
     }
-
-    const { data: neighbourhoods, error: neighbourhoodError } = await supabaseAdmin
-      .from("neighbourhoods")
-      .select("*")
-      .order("name");
-
-    if (neighbourhoodError) {
-      return res.status(500).json({ error: neighbourhoodError.message });
-    }
-
-    return res.status(200).json({ locations, neighbourhoods });
+    return res.status(200).json({ locations });
   }
 
   if (req.method === "POST") {
-    const entity = req.body?.entity || "location";
-
-    if (entity === "neighbourhood") {
-      const name = req.body?.name?.trim();
-      const locationId = req.body?.locationId;
-
-      if (!name || !locationId) {
-        return res.status(400).json({ error: "Missing neighbourhood fields." });
-      }
-
-      const { data, error } = await supabaseAdmin
-        .from("neighbourhoods")
-        .insert([{ name, location_id: locationId }])
-        .select("*")
-        .single();
-
-      if (error) {
-        return res.status(500).json({ error: error.message });
-      }
-
-      return res.status(201).json({ neighbourhood: data });
-    }
-
     const name = req.body?.name?.trim();
 
     if (!name) {
       return res.status(400).json({ error: "Location name is required." });
     }
 
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
     const { data, error } = await supabaseAdmin
       .from("locations")
-      .insert([{ name }])
-      .select("*")
+      .insert([{ name, slug }])
+      .select("id,name,slug")
       .single();
 
     if (error) {

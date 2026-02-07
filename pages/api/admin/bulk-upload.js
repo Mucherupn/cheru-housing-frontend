@@ -1,16 +1,19 @@
-import path from "path";
 import { supabaseAdmin, requireAdmin } from "../../../lib/supabaseAdmin";
 
-const isRemoteUrl = (value) =>
-  typeof value === "string" && /^https?:\/\//i.test(value.trim());
-
 const normalizeAmenityName = (name) => name.trim();
+
+const createSlug = (value) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
 
 const ensureLocation = async (name) => {
   const trimmed = name.trim();
   const { data: existing } = await supabaseAdmin
     .from("locations")
-    .select("id")
+    .select("id,slug")
     .ilike("name", trimmed)
     .maybeSingle();
 
@@ -18,35 +21,10 @@ const ensureLocation = async (name) => {
     return existing.id;
   }
 
+  const slug = createSlug(trimmed);
   const { data: created, error } = await supabaseAdmin
     .from("locations")
-    .insert([{ name: trimmed }])
-    .select("id")
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return created.id;
-};
-
-const ensureNeighbourhood = async (name, locationId) => {
-  const trimmed = name.trim();
-  const { data: existing } = await supabaseAdmin
-    .from("neighbourhoods")
-    .select("id")
-    .eq("location_id", locationId)
-    .ilike("name", trimmed)
-    .maybeSingle();
-
-  if (existing?.id) {
-    return existing.id;
-  }
-
-  const { data: created, error } = await supabaseAdmin
-    .from("neighbourhoods")
-    .insert([{ name: trimmed, location_id: locationId }])
+    .insert([{ name: trimmed, slug }])
     .select("id")
     .single();
 
@@ -89,29 +67,6 @@ const ensureAmenityIds = async (amenities) => {
   return ids;
 };
 
-const uploadRemoteImage = async (listingId, url, label) => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${url}`);
-  }
-
-  const contentType = response.headers.get("content-type") || "image/jpeg";
-  const extension =
-    path.extname(new URL(url).pathname) || `.${contentType.split("/")[1]}`;
-  const fileName = `${listingId}/${label}${extension}`;
-  const buffer = Buffer.from(await response.arrayBuffer());
-
-  const { error } = await supabaseAdmin.storage
-    .from("listing-images")
-    .upload(fileName, buffer, { contentType, upsert: true });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return fileName;
-};
-
 export default async function handler(req, res) {
   const admin = await requireAdmin(req, res);
   if (!admin) {
@@ -135,19 +90,14 @@ export default async function handler(req, res) {
   for (const [index, row] of rows.entries()) {
     try {
       const title = String(row.title || "").trim();
-      const listingType = String(row.listingType || "").trim();
-      const propertyType = String(row.propertyType || "").trim();
+      const type = String(row.type || "").trim();
       const locationName = String(row.location || "").trim();
-      const neighbourhoodName = String(row.neighbourhood || "").trim();
 
-      if (!title || !listingType || !locationName) {
+      if (!title || !type || !locationName) {
         throw new Error("Missing required fields.");
       }
 
       const locationId = await ensureLocation(locationName);
-      const neighbourhoodId = neighbourhoodName
-        ? await ensureNeighbourhood(neighbourhoodName, locationId)
-        : null;
 
       const { data: listing, error: listingError } = await supabaseAdmin
         .from("listings")
@@ -156,18 +106,20 @@ export default async function handler(req, res) {
             title,
             description: row.description || null,
             price: row.price ? Number(row.price) : null,
-            property_type: propertyType || null,
-            listing_type: listingType,
+            type,
             location_id: locationId,
-            neighbourhood_id: neighbourhoodId,
-            size: row.size ? Number(row.size) : null,
             bedrooms: row.bedrooms ? Number(row.bedrooms) : null,
             bathrooms: row.bathrooms ? Number(row.bathrooms) : null,
             year_built: row.yearBuilt ? Number(row.yearBuilt) : null,
-            status: row.status || "draft",
+            house_size: row.houseSize ? Number(row.houseSize) : null,
+            land_size: row.landSize ? Number(row.landSize) : null,
+            floor: row.floor ? Number(row.floor) : null,
+            apartment_name: row.apartmentName ? String(row.apartmentName) : null,
           },
         ])
-        .select("*")
+        .select(
+          "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at"
+        )
         .single();
 
       if (listingError) {
@@ -186,52 +138,10 @@ export default async function handler(req, res) {
           amenity_id: amenityId,
         }));
         const { error: amenityError } = await supabaseAdmin
-          .from("listing_amenities")
+          .from("property_amenities")
           .insert(amenityRows);
         if (amenityError) {
           throw new Error(amenityError.message);
-        }
-      }
-
-      let featuredImagePath = row.featuredImage || null;
-      if (isRemoteUrl(row.featuredImage)) {
-        featuredImagePath = await uploadRemoteImage(
-          listing.id,
-          row.featuredImage,
-          "featured"
-        );
-      }
-
-      if (featuredImagePath) {
-        await supabaseAdmin
-          .from("listings")
-          .update({ featured_image: featuredImagePath })
-          .eq("id", listing.id);
-      }
-
-      const galleryImages = String(row.galleryImages || "")
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-      if (galleryImages.length) {
-        const imageRows = [];
-        for (const [imageIndex, image] of galleryImages.entries()) {
-          let imagePath = image;
-          if (isRemoteUrl(image)) {
-            imagePath = await uploadRemoteImage(
-              listing.id,
-              image,
-              `gallery-${imageIndex + 1}`
-            );
-          }
-          imageRows.push({ listing_id: listing.id, image_path: imagePath });
-        }
-        const { error: imageError } = await supabaseAdmin
-          .from("listing_images")
-          .insert(imageRows);
-        if (imageError) {
-          throw new Error(imageError.message);
         }
       }
 

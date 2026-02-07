@@ -10,11 +10,18 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     const payload = {
-      price_per_sqm:
-        req.body?.pricePerSqm !== "" ? Number(req.body?.pricePerSqm) : null,
+      property_type: req.body?.propertyType?.trim() || null,
+      base_price_per_sqm:
+        req.body?.basePricePerSqm !== ""
+          ? Number(req.body?.basePricePerSqm)
+          : null,
       land_price_per_acre:
         req.body?.landPricePerAcre !== ""
           ? Number(req.body?.landPricePerAcre)
+          : null,
+      depreciation_rate:
+        req.body?.depreciationRate !== ""
+          ? Number(req.body?.depreciationRate)
           : null,
     };
 
@@ -22,7 +29,9 @@ export default async function handler(req, res) {
       .from("estimator_configs")
       .update(payload)
       .eq("id", id)
-      .select("*")
+      .select(
+        "id,property_type,base_price_per_sqm,land_price_per_acre,depreciation_rate,location_id,created_at,updated_at"
+      )
       .single();
 
     if (error) {

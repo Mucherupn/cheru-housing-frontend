@@ -14,11 +14,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Location name is required." });
     }
 
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
     const { data, error } = await supabaseAdmin
       .from("locations")
-      .update({ name })
+      .update({ name, slug })
       .eq("id", id)
-      .select("*")
+      .select("id,name,slug")
       .single();
 
     if (error) {
@@ -29,7 +35,6 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
-    await supabaseAdmin.from("neighbourhoods").delete().eq("location_id", id);
     const { error } = await supabaseAdmin.from("locations").delete().eq("id", id);
 
     if (error) {
