@@ -32,6 +32,8 @@ type FiltersState = {
   price: string;
   size: string;
   sort: string;
+  priceRange: string;
+  areaRange: string;
 };
 
 const PRICE_RANGES = {
@@ -74,6 +76,16 @@ const LAND_SIZE_RANGES = {
     min: 3 * ACRE_IN_SQM,
     max: undefined,
   },
+  "above-150m": { label: "Above 150M", min: 150_000_000, max: undefined },
+};
+
+const AREA_RANGES = {
+  "": { label: "Area", min: undefined, max: undefined },
+  "below-100": { label: "Below 100 sqm", min: undefined, max: 100 },
+  "100-200": { label: "100 – 200 sqm", min: 100, max: 200 },
+  "200-400": { label: "200 – 400 sqm", min: 200, max: 400 },
+  "400-800": { label: "400 – 800 sqm", min: 400, max: 800 },
+  "above-800": { label: "Above 800 sqm", min: 800, max: undefined },
 };
 
 const toTitleCase = (value: string) =>
@@ -108,6 +120,8 @@ export default function BuyLocationPage() {
     price: "",
     size: "",
     sort: "newest",
+    priceRange: "",
+    areaRange: "",
   });
 
   const formattedLocation = useMemo(() => {
@@ -146,6 +160,32 @@ export default function BuyLocationPage() {
     const matchedSizeRange = querySize in LAND_SIZE_RANGES ? querySize : "";
 
     const isLandType = queryType.toLowerCase() === "land";
+    const queryMinPrice =
+      typeof router.query.minPrice === "string"
+        ? Number(router.query.minPrice)
+        : null;
+    const queryMaxPrice =
+      typeof router.query.maxPrice === "string"
+        ? Number(router.query.maxPrice)
+        : null;
+    const queryMinArea =
+      typeof router.query.minArea === "string" ? Number(router.query.minArea) : null;
+    const queryMaxArea =
+      typeof router.query.maxArea === "string" ? Number(router.query.maxArea) : null;
+
+    const matchedPriceRange = Object.entries(PRICE_RANGES).find(([, range]) => {
+      if (range.min === undefined && range.max === undefined) {
+        return queryMinPrice === null && queryMaxPrice === null;
+      }
+      return range.min === queryMinPrice && range.max === queryMaxPrice;
+    });
+
+    const matchedAreaRange = Object.entries(AREA_RANGES).find(([, range]) => {
+      if (range.min === undefined && range.max === undefined) {
+        return queryMinArea === null && queryMaxArea === null;
+      }
+      return range.min === queryMinArea && range.max === queryMaxArea;
+    });
 
     setFilters({
       location: queryLocation || formattedLocation,
@@ -155,6 +195,10 @@ export default function BuyLocationPage() {
       price: matchedPriceRange,
       size: isLandType ? matchedSizeRange : "",
       sort: querySort,
+      bedrooms: queryBedrooms,
+      bathrooms: queryBathrooms,
+      priceRange: matchedPriceRange ? matchedPriceRange[0] : "",
+      areaRange: matchedAreaRange ? matchedAreaRange[0] : "",
     });
   }, [router.isReady, router.query, formattedLocation]);
 
@@ -184,6 +228,7 @@ export default function BuyLocationPage() {
       }
 
       const priceRange = PRICE_RANGES[activeFilters.price];
+      const priceRange = PRICE_RANGES[activeFilters.priceRange];
       if (priceRange?.min !== undefined) {
         params.set("minPrice", String(priceRange.min));
       }

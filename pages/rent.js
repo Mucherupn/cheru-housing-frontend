@@ -26,6 +26,7 @@ const Rent = () => {
           <SearchBar 
             placeholder="Where would you like to rent? E.g. Karen, Kilimani, Runda..." 
             buttonText="Search Rentals"
+            basePath="/rent"
           />
         </div>
 
