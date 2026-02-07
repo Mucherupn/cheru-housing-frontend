@@ -1,48 +1,94 @@
+import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../components/admin/AdminLayout";
 import DataTable from "../../components/admin/DataTable";
 import SectionCard from "../../components/admin/SectionCard";
 import StatCard from "../../components/admin/StatCard";
+import { apiRequest } from "../../utils/adminApi";
 
-const stats = [
-  {
-    label: "Total Listings",
-    value: "1,284",
-    trend: "+8.2%",
-    helper: "Across sale, rent & insights",
-  },
-  {
-    label: "New Listings",
-    value: "96",
-    trend: "+14.1%",
-    helper: "This month",
-  },
-  {
-    label: "Average Price",
-    value: "KES 18.4M",
-    trend: "+3.4%",
-    helper: "Weighted by location",
-  },
-  {
-    label: "Estimator Usage",
-    value: "4,621",
-    trend: "+11.8%",
-    helper: "Last 30 days",
-  },
-];
-
-const activityRows = [
-  ["Highland Rise", "Rent", "KES 120K", "Active", "2 hours ago"],
-  ["Tigoni Heights", "Sale", "KES 43.5M", "Pending", "Yesterday"],
-  ["Rosslyn Grove", "Insights", "KES 21.8M", "Active", "2 days ago"],
-];
-
-const locationRows = [
-  ["Westlands", "KES 22.3M", "Apartments, Penthouses", "+4.3%"],
-  ["Karen", "KES 48.9M", "Villas, Estates", "+2.1%"],
-  ["Runda", "KES 56.4M", "Family Homes", "+1.8%"],
-];
+const formatCurrency = (value) =>
+  value ? `KES ${value.toLocaleString()}` : "KES 0";
 
 const AdminDashboard = () => {
+  const [listings, setListings] = useState([]);
+  const [insights, setInsights] = useState([]);
+  const [estimatorConfigs, setEstimatorConfigs] = useState([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const [listingPayload, insightsPayload, estimatorPayload] =
+        await Promise.all([
+          apiRequest("/api/admin/listings"),
+          apiRequest("/api/admin/insights"),
+          apiRequest("/api/admin/estimator"),
+        ]);
+      setListings(listingPayload.listings || []);
+      setInsights(insightsPayload.insights || []);
+      setEstimatorConfigs(estimatorPayload.configs || []);
+    };
+
+    loadData();
+  }, []);
+
+  const stats = useMemo(() => {
+    const totalListings = listings.length;
+    const last30Days = new Date();
+    last30Days.setDate(last30Days.getDate() - 30);
+    const newListings = listings.filter(
+      (listing) => new Date(listing.created_at) >= last30Days
+    ).length;
+    const averagePrice =
+      listings.reduce((sum, listing) => sum + (Number(listing.price) || 0), 0) /
+        (totalListings || 1) || 0;
+
+    return [
+      {
+        label: "Total Listings",
+        value: totalListings.toLocaleString(),
+        trend: `${totalListings ? "+" : ""}${totalListings}`,
+        helper: "Across sale, rent & insights",
+      },
+      {
+        label: "New Listings",
+        value: newListings.toLocaleString(),
+        trend: `${newListings ? "+" : ""}${newListings}`,
+        helper: "Last 30 days",
+      },
+      {
+        label: "Average Price",
+        value: formatCurrency(Math.round(averagePrice)),
+        trend: "Updated",
+        helper: "Weighted by location",
+      },
+      {
+        label: "Estimator Configs",
+        value: estimatorConfigs.length.toLocaleString(),
+        trend: "Active",
+        helper: "Pricing inputs tracked",
+      },
+    ];
+  }, [listings, estimatorConfigs]);
+
+  const activityRows = useMemo(
+    () =>
+      listings.slice(0, 5).map((listing) => [
+        listing.title,
+        listing.listing_type,
+        formatCurrency(Number(listing.price) || 0),
+        listing.status,
+        new Date(listing.created_at).toLocaleDateString(),
+      ]),
+    [listings]
+  );
+
+  const locationRows = useMemo(() => {
+    return insights.slice(0, 5).map((insight) => [
+      insight.locations?.name || "Unknown",
+      formatCurrency(Number(insight.average_price) || 0),
+      insight.property_type || "-",
+      `${insight.month}/${insight.year}`,
+    ]);
+  }, [insights]);
+
   return (
     <AdminLayout
       title="Dashboard Overview"
@@ -65,7 +111,7 @@ const AdminDashboard = () => {
           }
         >
           <DataTable
-            columns={["Location", "Avg Price", "Top Types", "MoM"]}
+            columns={["Location", "Avg Price", "Top Types", "Month"]}
             rows={locationRows}
           />
         </SectionCard>
