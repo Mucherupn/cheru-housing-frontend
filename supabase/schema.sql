@@ -1,166 +1,197 @@
--- Enable UUID generation
+-- Cheru housing database reset + canonical schema
+-- This script is idempotent and safe to re-run in Supabase.
+
+-- 1) Extensions
 create extension if not exists "pgcrypto";
 
--- Locations
+-- 2) Drop existing public tables (app tables only)
+--    This avoids duplicate FKs/relationships that can break embeds.
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN (
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+  ) LOOP
+    EXECUTE format('DROP TABLE IF EXISTS public.%I CASCADE', r.tablename);
+  END LOOP;
+END $$;
+
+-- 3) Core tables
 create table if not exists public.locations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  slug text not null,
   created_at timestamptz not null default now()
 );
 
--- Neighbourhoods
-create table if not exists public.neighbourhoods (
+create unique index if not exists locations_name_key on public.locations (name);
+create unique index if not exists locations_slug_key on public.locations (slug);
+
+create table if not exists public.listings (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  location_id uuid not null references public.locations(id) on delete cascade,
+  type text,
+  title text,
+  description text,
+  price numeric,
+  bedrooms int,
+  bathrooms int,
+  house_size numeric,
+  land_size numeric,
+  year_built int,
+  floor int,
+  apartment_name text,
+  location_id uuid,
   created_at timestamptz not null default now()
 );
 
--- Amenities
 create table if not exists public.amenities (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   created_at timestamptz not null default now()
 );
 
--- Listings
-create table if not exists public.listings (
+create unique index if not exists amenities_name_key on public.amenities (name);
+
+create table if not exists public.property_amenities (
   id uuid primary key default gen_random_uuid(),
-  title text not null,
-  description text,
-  price numeric,
-  property_type text,
-  listing_type text not null,
-  location_id uuid not null references public.locations(id) on delete restrict,
-  neighbourhood_id uuid references public.neighbourhoods(id) on delete set null,
-  size numeric,
-  bedrooms int,
-  bathrooms int,
-  year_built int,
-  status text,
-  featured_image text,
+  listing_id uuid,
+  amenity_id uuid,
   created_at timestamptz not null default now()
 );
 
--- Listing images
-create table if not exists public.listing_images (
-  id uuid primary key default gen_random_uuid(),
-  listing_id uuid not null references public.listings(id) on delete cascade,
-  image_path text not null
-);
-
--- Listing amenities
-create table if not exists public.listing_amenities (
-  id uuid primary key default gen_random_uuid(),
-  listing_id uuid not null references public.listings(id) on delete cascade,
-  amenity_id uuid not null references public.amenities(id) on delete cascade
-);
-
--- Articles
-create table if not exists public.articles (
-  id uuid primary key default gen_random_uuid(),
-  title text not null,
-  slug text not null,
-  content text,
-  featured_image text,
-  status text,
-  created_at timestamptz not null default now()
-);
-
--- Estimator configs
-create table if not exists public.estimator_configs (
-  id uuid primary key default gen_random_uuid(),
-  location_id uuid not null references public.locations(id) on delete cascade,
-  price_per_sqm numeric,
-  land_price_per_acre numeric,
-  created_at timestamptz not null default now()
-);
-
--- Insights data
 create table if not exists public.insights_data (
   id uuid primary key default gen_random_uuid(),
-  location_id uuid not null references public.locations(id) on delete cascade,
-  property_type text not null,
-  average_price numeric,
-  month int not null,
-  year int not null
+  title text,
+  content text,
+  year int,
+  location_id uuid,
+  created_at timestamptz not null default now()
 );
 
+create table if not exists public.estimator_configs (
+  id uuid primary key default gen_random_uuid(),
+  property_type text,
+  location_id uuid,
+  base_price_per_sqm numeric,
+  land_price_per_acre numeric,
+  depreciation_rate numeric not null default 0.02,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.users (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  password_hash text,
+  role text not null default 'admin',
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists users_email_key on public.users (email);
+
+-- 4) Ensure required columns exist (idempotent adds if tables pre-exist)
+alter table public.locations
+  add column if not exists name text,
+  add column if not exists slug text;
+
+alter table public.listings
+  add column if not exists type text,
+  add column if not exists title text,
+  add column if not exists description text,
+  add column if not exists price numeric,
+  add column if not exists bedrooms int,
+  add column if not exists bathrooms int,
+  add column if not exists house_size numeric,
+  add column if not exists land_size numeric,
+  add column if not exists year_built int,
+  add column if not exists floor int,
+  add column if not exists apartment_name text,
+  add column if not exists location_id uuid;
+
+alter table public.amenities
+  add column if not exists name text;
+
+alter table public.property_amenities
+  add column if not exists listing_id uuid,
+  add column if not exists amenity_id uuid;
+
+alter table public.insights_data
+  add column if not exists title text,
+  add column if not exists content text,
+  add column if not exists year int,
+  add column if not exists location_id uuid;
+
+alter table public.estimator_configs
+  add column if not exists property_type text,
+  add column if not exists location_id uuid,
+  add column if not exists base_price_per_sqm numeric,
+  add column if not exists land_price_per_acre numeric,
+  add column if not exists depreciation_rate numeric;
+
+alter table public.users
+  add column if not exists email text,
+  add column if not exists password_hash text,
+  add column if not exists role text;
+
+-- 5) Foreign keys (single, canonical relationships)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'listings_location_id_fkey'
+  ) THEN
+    alter table public.listings
+      add constraint listings_location_id_fkey
+      foreign key (location_id) references public.locations(id) on delete restrict;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'property_amenities_listing_id_fkey'
+  ) THEN
+    alter table public.property_amenities
+      add constraint property_amenities_listing_id_fkey
+      foreign key (listing_id) references public.listings(id) on delete cascade;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'property_amenities_amenity_id_fkey'
+  ) THEN
+    alter table public.property_amenities
+      add constraint property_amenities_amenity_id_fkey
+      foreign key (amenity_id) references public.amenities(id) on delete cascade;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'insights_data_location_id_fkey'
+  ) THEN
+    alter table public.insights_data
+      add constraint insights_data_location_id_fkey
+      foreign key (location_id) references public.locations(id) on delete cascade;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'estimator_configs_location_id_fkey'
+  ) THEN
+    alter table public.estimator_configs
+      add constraint estimator_configs_location_id_fkey
+      foreign key (location_id) references public.locations(id) on delete cascade;
+  END IF;
+END $$;
+
+-- 6) Helpful indexes
 create index if not exists listings_location_idx on public.listings(location_id);
-create index if not exists listings_neighbourhood_idx on public.listings(neighbourhood_id);
-create index if not exists neighbourhoods_location_idx on public.neighbourhoods(location_id);
-create index if not exists listing_images_listing_idx on public.listing_images(listing_id);
-create index if not exists listing_amenities_listing_idx on public.listing_amenities(listing_id);
-create index if not exists listing_amenities_amenity_idx on public.listing_amenities(amenity_id);
-create index if not exists estimator_location_idx on public.estimator_configs(location_id);
+create index if not exists property_amenities_listing_idx on public.property_amenities(listing_id);
+create index if not exists property_amenities_amenity_idx on public.property_amenities(amenity_id);
 create index if not exists insights_location_idx on public.insights_data(location_id);
-
--- RLS policies
-alter table public.locations enable row level security;
-alter table public.neighbourhoods enable row level security;
-alter table public.amenities enable row level security;
-alter table public.listings enable row level security;
-alter table public.listing_images enable row level security;
-alter table public.listing_amenities enable row level security;
-alter table public.articles enable row level security;
-alter table public.estimator_configs enable row level security;
-alter table public.insights_data enable row level security;
-
--- Public read policies
-create policy "Public read locations" on public.locations for select using (true);
-create policy "Public read neighbourhoods" on public.neighbourhoods for select using (true);
-create policy "Public read listings" on public.listings for select using (true);
-create policy "Public read articles" on public.articles for select using (true);
-create policy "Public read listing images" on public.listing_images for select using (true);
-create policy "Public read listing amenities" on public.listing_amenities for select using (true);
-
--- Admin-only write policies
-create policy "Admin manage locations" on public.locations
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage neighbourhoods" on public.neighbourhoods
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage amenities" on public.amenities
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage listings" on public.listings
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage listing images" on public.listing_images
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage listing amenities" on public.listing_amenities
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage articles" on public.articles
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage estimator" on public.estimator_configs
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
-create policy "Admin manage insights" on public.insights_data
-  for all using ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com')
-  with check ((auth.jwt() ->> 'email') = 'Mucherupn@gmail.com');
-
--- Storage policies for listing images
-create policy "Public read listing-images" on storage.objects
-  for select using (bucket_id = 'listing-images');
-
-create policy "Admin manage listing-images" on storage.objects
-  for all using (
-    bucket_id = 'listing-images'
-    and (auth.jwt() ->> 'email') = 'Mucherupn@gmail.com'
-  )
-  with check (
-    bucket_id = 'listing-images'
-    and (auth.jwt() ->> 'email') = 'Mucherupn@gmail.com'
-  );
+create index if not exists estimator_location_idx on public.estimator_configs(location_id);
