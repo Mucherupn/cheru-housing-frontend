@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: listingError.message });
     }
 
-    await supabaseAdmin.from("property_amenities").delete().eq("listing_id", id);
+    await supabaseAdmin.from("listing_amenities").delete().eq("listing_id", id);
 
     if (amenityIds.length > 0) {
       const amenityRows = amenityIds.map((amenityId) => ({
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         amenity_id: amenityId,
       }));
       const { error: amenityError } = await supabaseAdmin
-        .from("property_amenities")
+        .from("listing_amenities")
         .insert(amenityRows);
       if (amenityError) {
         return res.status(500).json({ error: amenityError.message });
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "DELETE") {
-    await supabaseAdmin.from("property_amenities").delete().eq("listing_id", id);
+    await supabaseAdmin.from("listing_amenities").delete().eq("listing_id", id);
 
     const { error } = await supabaseAdmin.from("listings").delete().eq("id", id);
 

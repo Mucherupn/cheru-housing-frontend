@@ -10,16 +10,22 @@ const initialForm = {
   content: "",
   status: "draft",
   featuredImage: "",
+  locationId: "",
 };
 
 const ArticlesPage = () => {
   const [articles, setArticles] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [formState, setFormState] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
 
   const loadData = async () => {
-    const payload = await apiRequest("/api/admin/articles");
-    setArticles(payload.articles || []);
+    const [articlesPayload, locationsPayload] = await Promise.all([
+      apiRequest("/api/admin/articles"),
+      apiRequest("/api/admin/locations"),
+    ]);
+    setArticles(articlesPayload.articles || []);
+    setLocations(locationsPayload.locations || []);
   };
 
   useEffect(() => {
@@ -52,6 +58,7 @@ const ArticlesPage = () => {
       content: article.content || "",
       status: article.status || "draft",
       featuredImage: article.featured_image || "",
+      locationId: article.location_id || "",
     });
   };
 
@@ -64,6 +71,7 @@ const ArticlesPage = () => {
     article.title,
     article.slug,
     article.status,
+    locations.find((location) => location.id === article.location_id)?.name || "-",
     new Date(article.created_at).toLocaleDateString(),
     <div key={article.id} className="flex gap-2">
       <button
@@ -123,6 +131,27 @@ const ArticlesPage = () => {
               />
             </label>
           </div>
+
+          <label className="flex flex-col gap-2">
+            Location
+            <select
+              className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2"
+              value={formState.locationId}
+              onChange={(event) =>
+                setFormState((prev) => ({
+                  ...prev,
+                  locationId: event.target.value,
+                }))
+              }
+            >
+              <option value="">Global</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label className="flex flex-col gap-2">
             Content
@@ -185,7 +214,7 @@ const ArticlesPage = () => {
         description="Review the latest editorial content."
       >
         <DataTable
-          columns={["Title", "Slug", "Status", "Created", "Actions"]}
+          columns={["Title", "Slug", "Status", "Location", "Created", "Actions"]}
           rows={rows}
         />
       </SectionCard>

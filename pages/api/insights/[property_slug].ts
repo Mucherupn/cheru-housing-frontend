@@ -6,31 +6,13 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-type InsightProperty = {
-  id: number;
+type InsightEntry = {
+  id: string;
   title: string;
-  slug: string;
-  location_id: number;
-  property_type?: string | null;
-  description?: string | null;
-  asking_price_min?: number | null;
-  asking_price_max?: number | null;
-  rent_price_min?: number | null;
-  rent_price_max?: number | null;
-  year_built?: number | null;
-  total_units?: number | null;
-  unit_types?: string[] | string | null;
-  size_range?: string | null;
-  developer?: string | null;
-  parking_ratio?: string | null;
+  content?: string | null;
+  year?: number | null;
+  location_id?: string | null;
   created_at?: string | null;
-};
-
-type InsightImage = {
-  id: number;
-  property_id: number;
-  image_url: string;
-  is_featured?: boolean | null;
 };
 
 export default async function handler(
@@ -50,22 +32,20 @@ export default async function handler(
       return res.status(400).json({ error: "Property slug is required." });
     }
 
-    const { data: property, error: propertyError } = await supabaseAdmin
-      .from("insights_properties")
-      .select(
-        "id,title,slug,location_id,property_type,description,asking_price_min,asking_price_max,rent_price_min,rent_price_max,year_built,total_units,unit_types,size_range,developer,parking_ratio,created_at"
-      )
-      .eq("slug", propertySlug)
+    const { data: insight, error: insightError } = await supabaseAdmin
+      .from("insights_data")
+      .select("id,title,content,year,location_id,created_at,updated_at")
+      .eq("id", propertySlug)
       .maybeSingle();
 
-    if (propertyError) {
-      return res.status(500).json({ error: propertyError.message });
+    if (insightError) {
+      return res.status(500).json({ error: insightError.message });
     }
 
-    if (!property) {
+    if (!insight) {
       const { data: article, error: articleError } = await supabaseAdmin
-        .from("area_articles")
-        .select("id,slug,title,excerpt,content,image_url,location_id,created_at")
+        .from("articles")
+        .select("id,slug,title,content,featured_image,location_id,created_at")
         .eq("slug", propertySlug)
         .maybeSingle();
 
@@ -76,7 +56,7 @@ export default async function handler(
       if (!article) {
         return res
           .status(200)
-          .json({ property: null, images: [], articles: [], location: null, article: null });
+          .json({ insight: null, articles: [], location: null, article: null });
       }
 
       const { data: articleLocation, error: articleLocationError } = await supabaseAdmin
@@ -90,40 +70,29 @@ export default async function handler(
       }
 
       return res.status(200).json({
-        property: null,
-        images: [],
+        insight: null,
         articles: [],
         location: articleLocation ?? null,
         article,
       });
     }
 
-    const insightProperty = property as InsightProperty;
+    const insightEntry = insight as InsightEntry;
 
     const { data: locationData, error: locationError } = await supabaseAdmin
       .from("locations")
       .select("id,name,slug")
-      .eq("id", insightProperty.location_id)
+      .eq("id", insightEntry.location_id)
       .maybeSingle();
 
     if (locationError) {
       return res.status(500).json({ error: locationError.message });
     }
 
-    const { data: images, error: imagesError } = await supabaseAdmin
-      .from("insights_images")
-      .select("id,property_id,image_url,is_featured")
-      .eq("property_id", insightProperty.id)
-      .order("is_featured", { ascending: false });
-
-    if (imagesError) {
-      return res.status(500).json({ error: imagesError.message });
-    }
-
     const { data: articles, error: articlesError } = await supabaseAdmin
-      .from("area_articles")
-      .select("id,slug,title,excerpt,content,image_url,location_id,created_at")
-      .eq("location_id", insightProperty.location_id)
+      .from("articles")
+      .select("id,slug,title,content,featured_image,location_id,created_at")
+      .eq("location_id", insightEntry.location_id)
       .order("created_at", { ascending: false });
 
     if (articlesError) {
@@ -131,10 +100,10 @@ export default async function handler(
     }
 
     return res.status(200).json({
-      property: insightProperty,
-      images: (images ?? []) as InsightImage[],
+      insight: insightEntry,
       articles: articles ?? [],
       location: locationData ?? null,
+      article: null,
     });
   } catch (error: any) {
     console.error("API error @ /api/insights/[property_slug]:", error);

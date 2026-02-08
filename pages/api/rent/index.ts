@@ -59,7 +59,7 @@ export default async function handler(
     let query = supabaseAdmin
       .from("listings")
       .select(
-        "id,title,description,price,bedrooms,bathrooms,house_size,land_size,type,location_id,created_at,locations(name,slug)",
+        "id,title,description,price,bedrooms,bathrooms,house_size,land_size,type,location_id,created_at,location:locations(name,slug)",
         { count: "exact" }
       );
 
@@ -133,15 +133,15 @@ export default async function handler(
 
     const { data: amenities } = propertyIds.length
       ? await supabaseAdmin
-          .from("property_amenities")
-          .select("listing_id,amenities(name)")
+          .from("listing_amenities")
+          .select("listing_id,amenity:amenities(name)")
           .in("listing_id", propertyIds)
       : { data: [] };
 
     const amenitiesByProperty = (amenities || []).reduce<Record<string, string[]>>(
       (acc, amenity) => {
         const listingId = amenity?.listing_id;
-        const name = amenity?.amenities?.name;
+        const name = amenity?.amenity?.name;
         if (!listingId || !name) return acc;
         if (!acc[listingId]) {
           acc[listingId] = [];
@@ -157,7 +157,7 @@ export default async function handler(
       return {
         id: property.id,
         title: property.title || "Premium Rental",
-        location: property.locations?.name || "",
+        location: property.location?.name || "",
         price: property.price,
         bedrooms: property.bedrooms,
         bathrooms: property.bathrooms,

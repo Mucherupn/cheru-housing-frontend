@@ -6,30 +6,13 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-type InsightProperty = {
-  id: number;
+type InsightEntry = {
+  id: string;
   title: string;
-  slug: string;
-  location_id: number;
-  property_type?: string | null;
-  description?: string | null;
-  asking_price_min?: number | null;
-  asking_price_max?: number | null;
-  rent_price_min?: number | null;
-  rent_price_max?: number | null;
-  year_built?: number | null;
-  total_units?: number | null;
-  unit_types?: string[] | string | null;
-  size_range?: string | null;
-  developer?: string | null;
-  parking_ratio?: string | null;
+  content?: string | null;
+  year?: number | null;
+  location_id?: string | null;
   created_at?: string | null;
-};
-
-type InsightImage = {
-  property_id: number;
-  image_url: string;
-  is_featured?: boolean | null;
 };
 
 export default async function handler(
@@ -59,41 +42,23 @@ export default async function handler(
     }
 
     if (!locationData?.id) {
-      return res.status(200).json({ properties: [], articles: [], location: null });
+      return res.status(200).json({ insights: [], articles: [], location: null });
     }
 
-    const { data: properties, error: propertiesError } = await supabaseAdmin
-      .from("insights_properties")
-      .select(
-        "id,title,slug,location_id,property_type,description,asking_price_min,asking_price_max,rent_price_min,rent_price_max,year_built,total_units,unit_types,size_range,developer,parking_ratio,created_at"
-      )
+    const { data: insights, error: insightsError } = await supabaseAdmin
+      .from("insights_data")
+      .select("id,title,content,year,location_id,created_at,updated_at")
       .eq("location_id", locationData.id)
+      .order("year", { ascending: false })
       .order("created_at", { ascending: false });
 
-    if (propertiesError) {
-      return res.status(500).json({ error: propertiesError.message });
-    }
-
-    const propertyList = (properties ?? []) as InsightProperty[];
-    const propertyIds = propertyList.map((property) => property.id);
-
-    let images: InsightImage[] = [];
-    if (propertyIds.length > 0) {
-      const { data: imagesData, error: imagesError } = await supabaseAdmin
-        .from("insights_images")
-        .select("property_id,image_url,is_featured")
-        .in("property_id", propertyIds);
-
-      if (imagesError) {
-        return res.status(500).json({ error: imagesError.message });
-      }
-
-      images = (imagesData ?? []) as InsightImage[];
+    if (insightsError) {
+      return res.status(500).json({ error: insightsError.message });
     }
 
     const { data: articles, error: articlesError } = await supabaseAdmin
-      .from("area_articles")
-      .select("id,slug,title,excerpt,content,image_url,location_id,created_at")
+      .from("articles")
+      .select("id,slug,title,content,featured_image,location_id,created_at")
       .eq("location_id", locationData.id)
       .order("created_at", { ascending: false });
 
@@ -101,21 +66,9 @@ export default async function handler(
       return res.status(500).json({ error: articlesError.message });
     }
 
-    const propertiesWithImages = propertyList.map((property) => {
-      const propertyImages = images.filter((image) => image.property_id === property.id);
-      const featured =
-        propertyImages.find((image) => image.is_featured) ?? propertyImages[0] ?? null;
-
-      return {
-        ...property,
-        featured_image: featured?.image_url ?? null,
-        images_count: propertyImages.length,
-      };
-    });
-
     return res.status(200).json({
       location: locationData,
-      properties: propertiesWithImages,
+      insights: (insights ?? []) as InsightEntry[],
       articles: articles ?? [],
     });
   } catch (error: any) {

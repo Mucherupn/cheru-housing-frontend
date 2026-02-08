@@ -72,6 +72,6 @@ class EstimateResponse(BaseModel):
     estimated_value: float
     low_estimate: float
     high_estimate: float
-    price_per_sqm: Optional[float] = None
+    base_price_per_sqm: Optional[float] = None
     breakdown: EstimateBreakdown
     disclaimer: str

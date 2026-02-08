@@ -19,7 +19,7 @@ const fetchListings = async () =>
   supabaseAdmin
     .from("listings")
     .select(
-      "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at,locations(name),property_amenities(amenity_id,amenities(name))"
+      "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at,location:locations(name,slug),listing_amenities(amenity_id,amenity:amenities(name))"
     )
     .order("created_at", { ascending: false });
 
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         amenity_id: amenityId,
       }));
       const { error: amenityError } = await supabaseAdmin
-        .from("property_amenities")
+        .from("listing_amenities")
         .insert(amenityRows);
       if (amenityError) {
         return res.status(500).json({ error: amenityError.message });

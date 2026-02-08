@@ -45,7 +45,7 @@ const EstimatorPage = () => {
   };
 
   const rows = configs.map((config) => [
-    config.locations?.name || "-",
+    config.location?.name || "-",
     config.property_type || "-",
     config.base_price_per_sqm || "-",
     config.land_price_per_acre || "-",

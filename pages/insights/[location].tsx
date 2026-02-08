@@ -5,24 +5,18 @@ import { useRouter } from "next/router";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
-type InsightProperty = {
-  id: number;
+type InsightEntry = {
+  id: string;
   title: string;
-  slug: string;
-  location_id: number;
-  property_type?: string | null;
-  description?: string | null;
-  unit_types?: string[] | string | null;
-  developer?: string | null;
-  parking_ratio?: string | null;
-  featured_image?: string | null;
+  content?: string | null;
+  year?: number | null;
 };
 
 type AreaArticle = {
   id: number;
   title: string;
   slug: string;
-  image_url?: string | null;
+  featured_image?: string | null;
   excerpt?: string | null;
 };
 
@@ -31,21 +25,10 @@ const toTitleCase = (value: string) =>
     .replace(/-/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-const normalizeAmenityList = (value?: string[] | string | null) => {
-  if (!value) return [] as string[];
-  if (Array.isArray(value)) return value;
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-const fallbackAmenities = ["Concierge", "Parking", "Security", "Lifestyle"]; 
-
 const LocationInsightsPage = () => {
   const router = useRouter();
   const locationSlug = typeof router.query.location === "string" ? router.query.location : "";
-  const [properties, setProperties] = useState<InsightProperty[]>([]);
+  const [insights, setInsights] = useState<InsightEntry[]>([]);
   const [articles, setArticles] = useState<AreaArticle[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,10 +46,10 @@ const LocationInsightsPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setProperties(data.properties ?? []);
+        setInsights(data.insights ?? []);
         setArticles(data.articles ?? []);
       } else {
-        setProperties([]);
+        setInsights([]);
         setArticles([]);
       }
 
@@ -110,13 +93,13 @@ const LocationInsightsPage = () => {
 
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-[#0B1220]">Featured Properties</h2>
+          <h2 className="text-2xl font-semibold text-[#0B1220]">Featured Insights</h2>
           {loading && (
             <span className="text-sm text-[#9CA3AF]">Loading insights...</span>
           )}
         </div>
 
-        {properties.length === 0 && !loading ? (
+        {insights.length === 0 && !loading ? (
           <div className="mt-8 rounded-2xl border border-dashed border-gray-200 bg-[#F9FAFB] p-10 text-center">
             <p className="text-base text-[#6B7280]">
               Insights for this area are coming soon.
@@ -124,56 +107,35 @@ const LocationInsightsPage = () => {
           </div>
         ) : (
           <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {properties.map((property) => {
-              const amenities = normalizeAmenityList(property.unit_types);
-              const displayAmenities =
-                amenities.length > 0 ? amenities.slice(0, 4) : fallbackAmenities;
-              const description = property.description?.slice(0, 110) ?? "";
+            {insights.map((insight) => {
+              const description = insight.content?.slice(0, 110) ?? "";
+              const insightYear = insight.year ? `Report • ${insight.year}` : "Market Report";
 
               return (
                 <Link
-                  key={property.id}
-                  href={`/insights/${locationSlug}/${property.slug}`}
+                  key={insight.id}
+                  href={`/insights/${locationSlug}/${insight.id}`}
                   className="group flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div className="relative h-52 w-full overflow-hidden bg-[#F3F4F6]">
-                    {property.featured_image ? (
-                      <img
-                        src={property.featured_image}
-                        alt={property.title}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-sm text-[#9CA3AF]">
-                        Image coming soon
-                      </div>
-                    )}
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-sm text-[#9CA3AF]">
+                      <span className="text-xs uppercase tracking-[0.2em] text-[#CBD5F5]">
+                        {insightYear}
+                      </span>
+                      <span>Insight briefing</span>
+                    </div>
                   </div>
                   <div className="flex flex-1 flex-col gap-4 p-6">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-[#9CA3AF]">
-                        {property.property_type ?? "Premium Residence"}
-                      </p>
                       <h3 className="mt-2 text-lg font-semibold text-[#0B1220]">
-                        {property.title}
+                        {insight.title}
                       </h3>
                       <p className="mt-3 text-sm text-[#6B7280]">
                         {description || "Intelligence report pending."}
                       </p>
                     </div>
-                    <div className="mt-auto flex flex-wrap gap-3">
-                      {displayAmenities.map((amenity) => (
-                        <span
-                          key={amenity}
-                          className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-[#0B1220]"
-                        >
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EEF2FF] text-[10px] font-semibold text-[#012169]">
-                            {amenity.slice(0, 1).toUpperCase()}
-                          </span>
-                          {amenity}
-                        </span>
-                      ))}
+                    <div className="mt-auto text-xs uppercase tracking-[0.2em] text-[#9CA3AF]">
+                      Read full insight
                     </div>
                   </div>
                 </Link>
@@ -211,9 +173,9 @@ const LocationInsightsPage = () => {
                     className="group min-w-[260px] max-w-[320px] overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                   >
                     <div className="h-40 w-full bg-[#F3F4F6]">
-                      {article.image_url ? (
+                      {article.featured_image ? (
                         <img
-                          src={article.image_url}
+                          src={article.featured_image}
                           alt={article.title}
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                           loading="lazy"

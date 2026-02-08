@@ -138,7 +138,7 @@ export default async function handler(req, res) {
           amenity_id: amenityId,
         }));
         const { error: amenityError } = await supabaseAdmin
-          .from("property_amenities")
+          .from("listing_amenities")
           .insert(amenityRows);
         if (amenityError) {
           throw new Error(amenityError.message);

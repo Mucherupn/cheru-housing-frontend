@@ -25,7 +25,7 @@ export default async function handler(
     let query = supabase
       .from("listings")
       .select(
-        "id,title,price,bedrooms,bathrooms,house_size,land_size,type,location_id,created_at,locations(name,slug)"
+        "id,title,price,bedrooms,bathrooms,house_size,land_size,type,location_id,created_at,location:locations(name,slug)"
       );
 
     if (location && typeof location === "string") {
@@ -81,7 +81,7 @@ export default async function handler(
     const results = (data || []).map((listing) => ({
       id: listing.id,
       title: listing.title,
-      location: listing.locations?.name || "",
+      location: listing.location?.name || "",
       price: listing.price,
       bedrooms: listing.bedrooms,
       bathrooms: listing.bathrooms,
