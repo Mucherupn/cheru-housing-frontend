@@ -43,7 +43,7 @@ const InsightsPage = () => {
   };
 
   const rows = insights.map((insight) => [
-    insight.locations?.name || "-",
+    insight.location?.name || "-",
     insight.title || "-",
     insight.year || "-",
     <button

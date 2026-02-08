@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
 );
 
 type PropertyInterestPayload = {
-  property_id: number;
+  property_id: string;
   interest_type: string;
   timeline: string;
   contact: string;
@@ -33,23 +33,27 @@ export default async function handler(
     }
 
     const { data, error } = await supabaseAdmin
-      .from("property_interest")
+      .from("inquiries")
       .insert([
         {
-          property_id: payload.property_id,
+          listing_id: payload.property_id,
+          request_type: "property_interest",
           interest_type: payload.interest_type,
           timeline: payload.timeline,
           contact: payload.contact,
           message: payload.message ?? null,
         },
       ])
-      .select();
+      .select(
+        "id,location_id,listing_id,request_type,interest_type,timeline,contact,message,created_at"
+      )
+      .single();
 
     if (error) {
       return res.status(500).json({ error: error.message });
     }
 
-    return res.status(201).json({ interest: data?.[0] ?? null });
+    return res.status(201).json({ interest: data ?? null });
   } catch (error: any) {
     console.error("API error @ /api/property-interest:", error);
     return res.status(500).json({ error: "Internal Server Error" });

@@ -15,6 +15,7 @@ export default async function handler(req, res) {
       content: req.body?.content?.trim() || null,
       status: req.body?.status?.trim() || "draft",
       featured_image: req.body?.featuredImage || null,
+      location_id: req.body?.locationId || null,
     };
 
     if (!payload.title || !payload.slug) {
@@ -25,7 +26,9 @@ export default async function handler(req, res) {
       .from("articles")
       .update(payload)
       .eq("id", id)
-      .select("id,title,slug,content,status,featured_image,created_at,updated_at")
+      .select(
+        "id,title,slug,content,status,featured_image,location_id,created_at,updated_at"
+      )
       .single();
 
     if (error) {

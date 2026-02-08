@@ -81,7 +81,7 @@ const AdminDashboard = () => {
 
   const locationRows = useMemo(() => {
     return insights.slice(0, 5).map((insight) => [
-      insight.locations?.name || "Unknown",
+      insight.location?.name || "Unknown",
       insight.title || "-",
       insight.year || "-",
     ]);

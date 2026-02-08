@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabaseAdmin
       .from("articles")
       .select(
-        "id,title,slug,content,status,featured_image,created_at,updated_at"
+        "id,title,slug,content,status,featured_image,location_id,created_at,updated_at"
       )
       .order("created_at", { ascending: false });
 
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
     const content = req.body?.content?.trim();
     const status = req.body?.status?.trim() || "draft";
     const featuredImage = req.body?.featuredImage || null;
+    const locationId = req.body?.locationId || null;
 
     if (!title || !slug) {
       return res.status(400).json({ error: "Title and slug are required." });
@@ -41,9 +42,12 @@ export default async function handler(req, res) {
           content: content || null,
           status,
           featured_image: featuredImage,
+          location_id: locationId,
         },
       ])
-      .select("id,title,slug,content,status,featured_image,created_at,updated_at")
+      .select(
+        "id,title,slug,content,status,featured_image,location_id,created_at,updated_at"
+      )
       .single();
 
     if (error) {

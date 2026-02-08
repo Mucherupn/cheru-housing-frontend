@@ -30,18 +30,30 @@ export default async function handler(
       });
     }
 
+    const locationValue = typeof location === "string" ? location.trim() : "";
+    const { data: locationData } = locationValue
+      ? await supabaseAdmin
+          .from("locations")
+          .select("id,name,slug")
+          .or(`slug.ilike.%${locationValue}%,name.ilike.%${locationValue}%`)
+          .maybeSingle()
+      : { data: null };
+
     const { data, error } = await supabaseAdmin
-      .from("property_requests")
+      .from("inquiries")
       .insert([
         {
-          location,
+          location_id: locationData?.id ?? null,
+          request_type: "property_request",
           property_type,
           budget,
           contact,
           message: message || null,
         },
       ])
-      .select()
+      .select(
+        "id,location_id,listing_id,request_type,property_type,budget,contact,message,created_at"
+      )
       .single();
 
     if (error) {

@@ -30,9 +30,7 @@ listing-images/
     gallery-2.jpg
 ```
 
-The SQL in `schema.sql` includes storage policies for public read access and admin writes.
-
-If you change the admin email address, update the email in `schema.sql` policies to match.
+Configure storage policies for public read access and admin writes in Supabase as needed.
 
 ## 4) Admin authentication
 
@@ -53,7 +51,6 @@ The admin panel uses the following API endpoints (all require an authenticated a
 - `/api/admin/bulk-upload`
 - `/api/admin/locations`
 - `/api/admin/locations/[id]`
-- `/api/admin/neighbourhoods/[id]`
 - `/api/admin/amenities`
 - `/api/admin/amenities/[id]`
 - `/api/admin/articles`

@@ -38,7 +38,7 @@ export default async function handler(
       const { type, location } = req.query;
 
       let query = supabaseAdmin.from("listings").select(
-        "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at,locations(name,slug)"
+        "id,title,description,price,bedrooms,bathrooms,house_size,land_size,year_built,floor,apartment_name,type,location_id,created_at,updated_at,location:locations(name,slug)"
       );
 
       // Apply filters if provided

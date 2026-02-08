@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabaseAdmin
       .from("estimator_configs")
       .select(
-        "id,property_type,base_price_per_sqm,land_price_per_acre,depreciation_rate,location_id,created_at,updated_at,locations(name)"
+        "id,property_type,base_price_per_sqm,land_price_per_acre,depreciation_rate,location_id,created_at,updated_at,location:locations(name)"
       )
       .order("created_at", { ascending: false });
 

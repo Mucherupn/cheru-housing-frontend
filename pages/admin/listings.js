@@ -96,7 +96,7 @@ const ListingsPage = () => {
       apartmentName: listing.apartment_name || "",
     });
     setSelectedAmenities(
-      listing.property_amenities?.map((item) => item.amenity_id) || []
+      listing.listing_amenities?.map((item) => item.amenity_id) || []
     );
   };
 
@@ -110,7 +110,7 @@ const ListingsPage = () => {
     listing.type,
     listing.price ? `KES ${Number(listing.price).toLocaleString()}` : "-",
     listing.bedrooms ? `${listing.bedrooms} Beds` : "-",
-    listing.locations?.name || "-",
+    listing.location?.name || "-",
     <div key={listing.id} className="flex gap-2">
       <button
         type="button"

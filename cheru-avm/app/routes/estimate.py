@@ -68,7 +68,7 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         result = estimate_land(area, payload.land_size_acres, payload.plot_shape)
         estimated_value = result["estimated_value"]
         breakdown = result["breakdown"]
-        price_per_sqm = None
+        base_price_per_sqm = None
     elif isinstance(payload, ApartmentEstimateRequest):
         amenities = _get_amenities(db, payload.amenities, "apartment")
         result = estimate_apartment(
@@ -79,7 +79,7 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         )
         estimated_value = result["estimated_value"]
         breakdown = result["breakdown"]
-        price_per_sqm = result["price_per_sqm"]
+        base_price_per_sqm = breakdown["base_price_per_sqm"]
     elif isinstance(payload, HouseEstimateRequest):
         amenities = _get_amenities(db, payload.amenities, "house")
         result = estimate_house(
@@ -92,7 +92,7 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         )
         estimated_value = result["estimated_value"]
         breakdown = result["breakdown"]
-        price_per_sqm = result["breakdown"]["final_price_per_sqm"]
+        base_price_per_sqm = breakdown["base_price_per_sqm"]
     else:
         raise HTTPException(status_code=400, detail="Unsupported property type")
 
@@ -105,7 +105,7 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         estimated_value=estimated_value,
         low_estimate=low_estimate,
         high_estimate=high_estimate,
-        price_per_sqm=price_per_sqm,
+        base_price_per_sqm=base_price_per_sqm,
         breakdown=breakdown,
         disclaimer=DISCLAIMER_TEXT,
     )

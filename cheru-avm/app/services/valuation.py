@@ -49,7 +49,6 @@ def estimate_apartment(
     estimated_value = final_psm * float(size_sqm)
     return {
         "estimated_value": estimated_value,
-        "price_per_sqm": final_psm,
         "breakdown": {
             "base_price_per_sqm": base_psm,
             "depreciation_percent": 1 - remaining_value,
