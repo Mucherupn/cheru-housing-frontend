@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +17,12 @@ from app.schemas.estimate import (
 from app.services.valuation import estimate_apartment, estimate_house, estimate_land
 
 router = APIRouter()
+
+CLASSIC_PROPERTY_YEAR = 1985
+YEAR_CLASSIC_MESSAGE = (
+    "This property is too classic for automated estimation. "
+    "Please contact our team for a professional valuation."
+)
 
 DISCLAIMER_TEXT = (
     "Kindly note that this is an automatic estimated value. "
@@ -42,7 +49,23 @@ def _get_amenities(
 ) -> List[Amenity]:
     if not amenity_names:
         return []
-    normalized = [name.strip().lower() for name in amenity_names]
+    alias_map = {
+        "solar panels": "solar",
+        "backup generator": "backup_generator",
+        "parking": "parking",
+        "lift": "lift",
+        "balcony": "balcony",
+        "security": "security",
+        "garage": "garage",
+        "garden": "garden",
+        "pool": "pool",
+        "gym": "gym",
+    }
+
+    normalized = []
+    for name in amenity_names:
+        cleaned = name.strip().lower().replace("_", " ")
+        normalized.append(alias_map.get(cleaned, cleaned.replace(" ", "_")))
     amenities = (
         db.query(Amenity)
         .filter(func.lower(Amenity.name).in_(normalized))
@@ -62,7 +85,17 @@ def _get_amenities(
 @router.post("/estimate", response_model=EstimateResponse)
 
 def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
+    current_year = datetime.now().year
     area = _get_area(db, payload.area)
+
+    if hasattr(payload, "year_built"):
+        if payload.year_built > current_year:
+            raise HTTPException(
+                status_code=400,
+                detail=f"year_built must be between 1970 and {current_year}",
+            )
+        if payload.year_built < CLASSIC_PROPERTY_YEAR:
+            raise HTTPException(status_code=400, detail=YEAR_CLASSIC_MESSAGE)
 
     if isinstance(payload, LandEstimateRequest):
         result = estimate_land(area, payload.land_size_acres, payload.plot_shape)
@@ -96,13 +129,14 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=400, detail="Unsupported property type")
 
-    low_estimate = estimated_value * 0.92
+    low_estimate = estimated_value * 0.90
     high_estimate = estimated_value * 1.10
 
     return EstimateResponse(
         property_type=payload.property_type,
         area=area.name,
         estimated_value=estimated_value,
+        value=estimated_value,
         low_estimate=low_estimate,
         high_estimate=high_estimate,
         base_price_per_sqm=base_price_per_sqm,

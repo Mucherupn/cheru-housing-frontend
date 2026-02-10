@@ -34,14 +34,18 @@ AMENITIES = [
     {"name": "lift", "property_type": "apartment", "value": 0.03},
     {"name": "pool", "property_type": "apartment", "value": 0.05},
     {"name": "gym", "property_type": "apartment", "value": 0.03},
-    {"name": "backup_generator", "property_type": "apartment", "value": 0.02},
+    {"name": "backup_generator", "property_type": "apartment", "value": 0.025},
     {"name": "parking", "property_type": "apartment", "value": 0.02},
+    {"name": "balcony", "property_type": "apartment", "value": 0.015},
+    {"name": "security", "property_type": "apartment", "value": 0.02},
     {"name": "pool", "property_type": "house", "value": 0.06},
-    {"name": "staff_quarters", "property_type": "house", "value": 0.04},
+    {"name": "gym", "property_type": "house", "value": 0.03},
     {"name": "garage", "property_type": "house", "value": 0.03},
     {"name": "solar", "property_type": "house", "value": 0.02},
     {"name": "garden", "property_type": "house", "value": 0.03},
+    {"name": "security", "property_type": "house", "value": 0.02},
 ]
+
 
 
 def upsert_areas(session: Session) -> None:

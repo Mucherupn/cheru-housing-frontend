@@ -14,8 +14,11 @@ class EstimateBase(BaseModel):
 
 class ApartmentEstimateRequest(EstimateBase):
     property_type: Literal["apartment"] = "apartment"
-    size_sqm: float = Field(..., gt=0)
-    year_built: int = Field(..., ge=1800)
+    size_sqm: float = Field(..., ge=1)
+    year_built: int = Field(..., ge=1970)
+    bedrooms: int = Field(..., ge=1, le=9)
+    bathrooms: int = Field(default=0, ge=0)
+    floor: int = Field(..., ge=1, le=99)
     amenities: List[str] = Field(default_factory=list)
     apartment_name: Optional[str] = None
 
@@ -30,9 +33,11 @@ class ApartmentEstimateRequest(EstimateBase):
 
 class HouseEstimateRequest(EstimateBase):
     property_type: Literal["house"] = "house"
-    house_size_sqm: float = Field(..., gt=0)
-    land_size_acres: float = Field(..., gt=0)
-    year_built: int = Field(..., ge=1800)
+    house_size_sqm: float = Field(..., ge=1)
+    land_size_acres: float = Field(..., ge=0.01)
+    year_built: int = Field(..., ge=1970)
+    bedrooms: int = Field(default=0, ge=0)
+    bathrooms: int = Field(default=0, ge=0)
     plot_shape: PlotShape
     amenities: List[str] = Field(default_factory=list)
 
@@ -47,7 +52,7 @@ class HouseEstimateRequest(EstimateBase):
 
 class LandEstimateRequest(EstimateBase):
     property_type: Literal["land"] = "land"
-    land_size_acres: float = Field(..., gt=0)
+    land_size_acres: float = Field(..., ge=0.01)
     plot_shape: PlotShape
 
 
@@ -70,6 +75,7 @@ class EstimateResponse(BaseModel):
     property_type: str
     area: str
     estimated_value: float
+    value: float
     low_estimate: float
     high_estimate: float
     base_price_per_sqm: Optional[float] = None
