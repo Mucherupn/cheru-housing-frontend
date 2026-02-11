@@ -96,15 +96,29 @@ const CheruEstimate = () => {
                 onChange={handleChange}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-medium text-[#0B1220]">Bedrooms & Bathrooms</label>
-              <input
-                type="text"
-                name="bedBath"
-                placeholder="e.g 4 beds, 3 baths"
-                className="rounded-xl border border-gray-300 bg-[#F9FAFB] px-4 py-3 text-[#0B1220] placeholder-[#6B7280] outline-none focus:ring-2 focus:ring-[#012169]/30"
-                onChange={handleChange}
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-[#0B1220]">Bedrooms</label>
+                <input
+                  type="number"
+                  name="bedrooms"
+                  placeholder="e.g 4"
+                  min="0"
+                  className="rounded-xl border border-gray-300 bg-[#F9FAFB] px-4 py-3 text-[#0B1220] placeholder-[#6B7280] outline-none focus:ring-2 focus:ring-[#012169]/30"
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-[#0B1220]">Bathrooms</label>
+                <input
+                  type="number"
+                  name="bathrooms"
+                  placeholder="e.g 3"
+                  min="0"
+                  className="rounded-xl border border-gray-300 bg-[#F9FAFB] px-4 py-3 text-[#0B1220] placeholder-[#6B7280] outline-none focus:ring-2 focus:ring-[#012169]/30"
+                  onChange={handleChange}
+                />
+              </div>
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-medium text-[#0B1220]">Amenities</label>
@@ -157,6 +171,30 @@ const CheruEstimate = () => {
                 className="rounded-xl border border-gray-300 bg-[#F9FAFB] px-4 py-3 text-[#0B1220] placeholder-[#6B7280] outline-none focus:ring-2 focus:ring-[#012169]/30"
                 onChange={handleChange}
               />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-[#0B1220]">Bedrooms</label>
+                <input
+                  type="number"
+                  name="bedrooms"
+                  placeholder="e.g 3"
+                  min="0"
+                  className="rounded-xl border border-gray-300 bg-[#F9FAFB] px-4 py-3 text-[#0B1220] placeholder-[#6B7280] outline-none focus:ring-2 focus:ring-[#012169]/30"
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-[#0B1220]">Bathrooms</label>
+                <input
+                  type="number"
+                  name="bathrooms"
+                  placeholder="e.g 2"
+                  min="0"
+                  className="rounded-xl border border-gray-300 bg-[#F9FAFB] px-4 py-3 text-[#0B1220] placeholder-[#6B7280] outline-none focus:ring-2 focus:ring-[#012169]/30"
+                  onChange={handleChange}
+                />
+              </div>
             </div>
             <div className="flex flex-col gap-2">
               <label className="font-medium text-[#0B1220]">Year built</label>
@@ -227,6 +265,8 @@ const CheruEstimate = () => {
         house_size_sqm: Number(formData.houseSize),
         land_size_acres: Number(formData.landSize),
         year_built: Number(formData.yearBuilt),
+        bedrooms: Number(formData.bedrooms || 0),
+        bathrooms: Number(formData.bathrooms || 0),
         plot_shape: "normal",
         amenities: formData.amenities || [],
       };
@@ -237,6 +277,9 @@ const CheruEstimate = () => {
       area: formData.location,
       size_sqm: Number(formData.apartmentSize),
       year_built: Number(formData.yearBuilt),
+      bedrooms: Number(formData.bedrooms || 0),
+      bathrooms: Number(formData.bathrooms || 0),
+      floor: Number(formData.floor || 1),
       amenities: formData.amenities || [],
       apartment_name: formData.apartmentName,
     };
@@ -270,14 +313,15 @@ const CheruEstimate = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Estimate request failed.");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Estimate request failed.");
       }
 
       const data = await response.json();
       setEstimate(data);
       setIsModalOpen(true);
     } catch (error) {
-      setFormError("We couldn’t generate an estimate. Please check your inputs or try again.");
+      setFormError(error.message || "We couldn’t generate an estimate. Please check your inputs or try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -380,6 +424,9 @@ const CheruEstimate = () => {
             </h3>
             <p className="mt-3 text-lg text-gray-600">
               Range: {formatCurrency(estimate.low_estimate)} - {formatCurrency(estimate.high_estimate)}
+            </p>
+            <p className="mt-2 text-sm font-medium text-[#0B1220]">
+              Confidence Score: {Math.round((estimate.confidence_score || 0) * 100)}%
             </p>
             <div className="mt-6 rounded-xl bg-slate-50 px-4 py-3 text-sm text-gray-600">
               Market-adjusted estimate for {estimate.area} based on available amenity and sizing data.
