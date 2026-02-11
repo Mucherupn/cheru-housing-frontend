@@ -3,6 +3,8 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.database import Base, engine
+from app.models import Amenity, Area  # noqa: F401
 from app.routes.estimate import router as estimate_router
 from app.utils.config import get_settings
 
@@ -26,7 +28,11 @@ app.add_middleware(
 app.include_router(estimate_router, prefix="/api", tags=["estimates"])
 
 
-@app.get("/health")
+@app.on_event("startup")
+def startup() -> None:
+    Base.metadata.create_all(bind=engine)
 
+
+@app.get("/health")
 def health_check():
     return {"status": "ok"}

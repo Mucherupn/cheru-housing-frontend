@@ -16,9 +16,9 @@ class ApartmentEstimateRequest(EstimateBase):
     property_type: Literal["apartment"] = "apartment"
     size_sqm: float = Field(..., ge=1)
     year_built: int = Field(..., ge=1970)
-    bedrooms: int = Field(..., ge=1, le=9)
+    bedrooms: int = Field(default=0, ge=0, le=9)
     bathrooms: int = Field(default=0, ge=0)
-    floor: int = Field(..., ge=1, le=99)
+    floor: int = Field(default=1, ge=1, le=99)
     amenities: List[str] = Field(default_factory=list)
     apartment_name: Optional[str] = None
 
@@ -80,4 +80,5 @@ class EstimateResponse(BaseModel):
     high_estimate: float
     base_price_per_sqm: Optional[float] = None
     breakdown: EstimateBreakdown
+    confidence_score: float = Field(..., ge=0, le=1)
     disclaimer: str

@@ -1,8 +1,14 @@
 import logging
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
+from app.database import Base, SessionLocal, engine
 from app.models import Amenity, Area
 
 logging.basicConfig(level=logging.INFO)
@@ -87,6 +93,7 @@ def upsert_amenities(session: Session) -> None:
 
 
 def main() -> None:
+    Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     try:
         upsert_areas(session)

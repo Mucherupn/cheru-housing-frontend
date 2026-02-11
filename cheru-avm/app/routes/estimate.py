@@ -31,6 +31,18 @@ DISCLAIMER_TEXT = (
 )
 
 
+def _confidence_score(property_type: str, amenity_count: int) -> float:
+    base_scores = {
+        "land": 0.78,
+        "house": 0.82,
+        "apartment": 0.85,
+    }
+    base = base_scores.get(property_type, 0.75)
+    adjusted = base + min(amenity_count, 5) * 0.02
+    return round(min(adjusted, 0.95), 2)
+
+
+
 def _get_area(db: Session, area_name: str) -> Area:
     area = (
         db.query(Area)
@@ -102,6 +114,7 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         estimated_value = result["estimated_value"]
         breakdown = result["breakdown"]
         base_price_per_sqm = None
+        confidence_score = _confidence_score(payload.property_type, 0)
     elif isinstance(payload, ApartmentEstimateRequest):
         amenities = _get_amenities(db, payload.amenities, "apartment")
         result = estimate_apartment(
@@ -113,6 +126,7 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         estimated_value = result["estimated_value"]
         breakdown = result["breakdown"]
         base_price_per_sqm = breakdown["base_price_per_sqm"]
+        confidence_score = _confidence_score(payload.property_type, len(amenities))
     elif isinstance(payload, HouseEstimateRequest):
         amenities = _get_amenities(db, payload.amenities, "house")
         result = estimate_house(
@@ -126,6 +140,7 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         estimated_value = result["estimated_value"]
         breakdown = result["breakdown"]
         base_price_per_sqm = breakdown["base_price_per_sqm"]
+        confidence_score = _confidence_score(payload.property_type, len(amenities))
     else:
         raise HTTPException(status_code=400, detail="Unsupported property type")
 
@@ -141,5 +156,6 @@ def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
         high_estimate=high_estimate,
         base_price_per_sqm=base_price_per_sqm,
         breakdown=breakdown,
+        confidence_score=confidence_score,
         disclaimer=DISCLAIMER_TEXT,
     )
