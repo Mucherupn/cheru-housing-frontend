@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Amenity, Area
+from app.services.bootstrap import ensure_reference_data
 from app.schemas.estimate import (
     ApartmentEstimateRequest,
     EstimateRequest,
@@ -98,6 +99,7 @@ def _get_amenities(
 
 def create_estimate(payload: EstimateRequest, db: Session = Depends(get_db)):
     current_year = datetime.now().year
+    ensure_reference_data(db)
     area = _get_area(db, payload.area)
 
     if hasattr(payload, "year_built"):

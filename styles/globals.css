@@ -4,20 +4,16 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-[#012169] text-white px-6 py-3 rounded-xl font-semibold transition hover:opacity-90;
+    @apply rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:opacity-90;
   }
 
   .btn-secondary {
-    @apply border border-[#012169] text-[#012169] px-6 py-3 rounded-xl font-semibold transition hover:bg-[#012169] hover:text-white;
+    @apply rounded-xl border border-primary px-6 py-3 font-semibold text-primary transition hover:bg-primary hover:text-white;
   }
 
   .section-heading {
     @apply text-3xl font-semibold text-white sm:text-4xl;
   }
-}
-
-:root {
-  color-scheme: dark;
 }
 
 body {

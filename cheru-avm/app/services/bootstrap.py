@@ -55,3 +55,10 @@ def seed_reference_data(session: Session) -> None:
             )
 
     session.commit()
+
+
+def ensure_reference_data(session: Session) -> None:
+    has_areas = session.query(Area.id).first() is not None
+    has_amenities = session.query(Amenity.id).first() is not None
+    if not has_areas or not has_amenities:
+        seed_reference_data(session)

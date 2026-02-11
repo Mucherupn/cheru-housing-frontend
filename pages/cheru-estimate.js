@@ -11,9 +11,15 @@ const API_URL = process.env.NEXT_PUBLIC_AVM_API || "http://localhost:8000";
 const YEAR_CLASSIC_MESSAGE =
   "This property is too classic for automated estimation. Please contact our team for a professional valuation.";
 
+const EMPTY_FORM_BY_TYPE = {
+  Land: { type: "Land", location: "", amenities: [] },
+  House: { type: "House", location: "", amenities: [] },
+  Apartment: { type: "Apartment", location: "", amenities: [] },
+};
+
 const CheruEstimate = () => {
   const [propertyType, setPropertyType] = useState("Land");
-  const [formData, setFormData] = useState({ type: "Land", location: "" });
+  const [formData, setFormData] = useState(EMPTY_FORM_BY_TYPE.Land);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [estimate, setEstimate] = useState(null);
@@ -285,6 +291,46 @@ const CheruEstimate = () => {
     };
   };
 
+  const validateForm = () => {
+    if (!formData.location) {
+      return "Please select a location.";
+    }
+
+    if (propertyType === "Land") {
+      const size = Number(formData.size);
+      if (!Number.isFinite(size) || size <= 0) {
+        return "Please enter a valid land size greater than 0 acres.";
+      }
+      if (!formData.shape) {
+        return "Please select a plot shape.";
+      }
+    }
+
+    if (propertyType === "House") {
+      const houseSize = Number(formData.houseSize);
+      const landSize = Number(formData.landSize);
+      if (!Number.isFinite(houseSize) || houseSize <= 0) {
+        return "Please enter a valid house size greater than 0 sqm.";
+      }
+      if (!Number.isFinite(landSize) || landSize <= 0) {
+        return "Please enter a valid land size greater than 0 acres.";
+      }
+    }
+
+    if (propertyType === "Apartment") {
+      const apartmentSize = Number(formData.apartmentSize);
+      const floor = Number(formData.floor);
+      if (!Number.isFinite(apartmentSize) || apartmentSize <= 0) {
+        return "Please enter a valid apartment size greater than 0 sqm.";
+      }
+      if (!Number.isFinite(floor) || floor < 1) {
+        return "Please enter a valid floor (1 or higher).";
+      }
+    }
+
+    return "";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
@@ -300,6 +346,12 @@ const CheruEstimate = () => {
         setFormError(YEAR_CLASSIC_MESSAGE);
         return;
       }
+    }
+
+    const validationError = validateForm();
+    if (validationError) {
+      setFormError(validationError);
+      return;
     }
 
     setIsSubmitting(true);
@@ -353,8 +405,10 @@ const CheruEstimate = () => {
               name="type"
               value={propertyType}
               onChange={(e) => {
-                setPropertyType(e.target.value);
-                setFormData({ ...formData, type: e.target.value });
+                const selectedType = e.target.value;
+                setPropertyType(selectedType);
+                setFormData(EMPTY_FORM_BY_TYPE[selectedType]);
+                setFormError("");
               }}
               className="rounded-xl border border-gray-300 bg-[#F9FAFB] px-4 py-3 text-[#0B1220] outline-none focus:ring-2 focus:ring-[#012169]/30"
             >
