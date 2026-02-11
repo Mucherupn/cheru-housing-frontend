@@ -6,7 +6,10 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = Field(..., alias="DATABASE_URL")
+    database_url: str = Field(
+        default="sqlite:///./cheru_avm.db",
+        alias="DATABASE_URL",
+    )
     allowed_origins: List[str] = Field(default_factory=lambda: ["*"])
 
     @field_validator("allowed_origins", mode="before")

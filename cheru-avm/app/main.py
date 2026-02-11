@@ -3,9 +3,10 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import Base, engine
+from app.database import Base, SessionLocal, engine
 from app.models import Amenity, Area  # noqa: F401
 from app.routes.estimate import router as estimate_router
+from app.services.bootstrap import seed_reference_data
 from app.utils.config import get_settings
 
 settings = get_settings()
@@ -31,6 +32,11 @@ app.include_router(estimate_router, prefix="/api", tags=["estimates"])
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_reference_data(db)
+    finally:
+        db.close()
 
 
 @app.get("/health")
