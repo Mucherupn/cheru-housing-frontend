@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     )
     allowed_origins: List[str] = Field(default_factory=lambda: ["*"])
 
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def validate_database_url(cls, value):
+        if isinstance(value, str) and not value.strip():
+            return "sqlite:///./cheru_avm.db"
+        return value
+
     @field_validator("allowed_origins", mode="before")
     @classmethod
     def split_origins(cls, value):
